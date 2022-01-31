@@ -35,7 +35,7 @@ namespace Trade02
             Console.WriteLine("------- TRD2022 -------");
             try
             {
-                bool canBuy = false;
+                bool runner = true;
 
                 // a cada X minutos, renovar os dados da lista previousData. Se por X minutos essas moedas não valorizaram 1%, renova a lista.
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
@@ -49,14 +49,16 @@ namespace Trade02
                 previousData = response;
 
                 // fazer essa busca a cada 1 minutos e verificar se algumas moedas subiram mais de 1%, se sim, compra
-                while (!canBuy)
+                while (runner)
                 {
                     // a primeira ação desse while é rodar o motor de posições abertas para verificar se precisa fazer vendas
+
                     await Task.Delay(5000, stoppingToken);
 
                     previousCounter++;
 
-                    // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada
+                    // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. Problema é a lista previousData
+                    // que seria perdida em outra camada
                     response = await _marketSvc.GetTopPercentages(3, "USDT", 10, openPositions);
 
                     List<IBinanceTick> oportunities = CheckOportunities(response, previousData);
@@ -76,6 +78,7 @@ namespace Trade02
             } catch(Exception ex)
             {
                 _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                throw ex;
             }
 
             while (!stoppingToken.IsCancellationRequested)
@@ -86,12 +89,12 @@ namespace Trade02
         }
 
         /// <summary>
-        /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para enxergar uma tendencia de subida
+        /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida
         /// e, por consequência, uma possível compra. Retorna a lista de moedas que atendam a estes requisitos.
         /// </summary>
         /// <param name="currentData"></param>
         /// <param name="previousData"></param>
-        /// <returns></returns>
+        /// <returns>Lista com as oportunidades de possíveis compras</returns>
         public static List<IBinanceTick> CheckOportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
         {
             List<IBinanceTick> result = new List<IBinanceTick>();

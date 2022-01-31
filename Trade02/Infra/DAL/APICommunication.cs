@@ -38,9 +38,7 @@ namespace Trade02.Infra.DAL
             if (response.Success)
                 return response.Data.ToList();
             else
-                throw new Exception("ERRO CARAI CARAI");
-
-                //throw new Exception(response.Error.Message);
+                throw new Exception(response.Error.Message);
 
         }
 
