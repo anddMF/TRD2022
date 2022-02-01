@@ -47,7 +47,6 @@ namespace Trade02.Business.services
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
-                // throw aqui não faz cair na exception da camada que chama esse método
                 throw;
             }
         }
@@ -65,6 +64,15 @@ namespace Trade02.Business.services
                                         select all;
 
             return result.ToList();
+        }
+
+        public async Task<object> PlaceOrder(string symbol)
+        {
+            // calculo da quantidade
+            decimal quantity = 0;
+            var order = await _clientSvc.PlaceOrder(symbol,quantity);
+
+            return null;
         }
 
         /// <summary>

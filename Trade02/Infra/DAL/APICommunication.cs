@@ -1,4 +1,5 @@
 ﻿using Binance.Net;
+using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using Binance.Net.Objects;
 using CryptoExchange.Net.Authentication;
@@ -32,8 +33,13 @@ namespace Trade02.Infra.DAL
             });
         }
 
+        /// <summary>
+        /// Get dos dados de criptomoedas nas últimas 24h
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<IBinanceTick>> GetTickers()
         {
+            // await _binanceClient.General.GetDailySpotAccountSnapshotAsync();
             var response = await _binanceClient.Spot.Market.GetTickersAsync();
 
             if (response.Success)
@@ -41,6 +47,19 @@ namespace Trade02.Infra.DAL
             else
                 throw new Exception(response.Error.Message);
 
+        }
+
+        public async Task<object> PlaceOrder(string symbol, decimal quantity)
+        {
+            // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos BTC o USDT irá comprar
+            //var callResult = await _binanceClient.Spot.Order.PlaceTestOrderAsync("MANAUSDT", OrderSide.Buy, OrderType.Market, quoteOrderQuantity: 10);
+            var response = await _binanceClient.Spot.Order.PlaceTestOrderAsync(symbol, OrderSide.Buy, OrderType.Market, quoteOrderQuantity: quantity);
+
+            if (response.Success)
+                return response.Data;
+            else
+                throw new Exception(response.Error.Message);
+            //var open = await _binanceClient.Spot.Order.GetOpenOrdersAsync("MANAUSDT");
         }
 
         /// <summary>

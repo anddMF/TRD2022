@@ -37,6 +37,7 @@ namespace Trade02
             {
                 bool runner = true;
 
+                var testeOrder = await _marketSvc.PlaceOrder("MANAUSDT");
                 // a cada X minutos, renovar os dados da lista previousData. Se por X minutos essas moedas não valorizaram 1%, renova a lista.
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 int previousCounter = 0;
