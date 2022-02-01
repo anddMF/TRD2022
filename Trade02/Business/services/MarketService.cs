@@ -53,6 +53,21 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
+        /// Retorna somente os dados da lista de moedas no input toMonitor.
+        /// </summary>
+        /// <param name="toMonitor">List de moedas para serem monitoradas</param>
+        /// <returns>Retorna os dados mais recentes das moedas de input</returns>
+        public async Task<List<IBinanceTick>> MonitorTopPercentages(List<IBinanceTick> toMonitor)
+        {
+            List<IBinanceTick> allSymbols = await _clientSvc.GetTickers();
+            IEnumerable<IBinanceTick> result = from all in allSymbols
+                                        join monitor in toMonitor on all.Symbol equals monitor.Symbol
+                                        select all;
+
+            return result.ToList();
+        }
+
+        /// <summary>
         /// Remove da lista de símbolos as moedas que já possuem posição em aberto.
         /// </summary>
         /// <param name="allSymbols"></param>

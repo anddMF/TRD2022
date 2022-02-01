@@ -35,6 +35,7 @@ namespace Trade02.Infra.DAL
         public async Task<List<IBinanceTick>> GetTickers()
         {
             var response = await _binanceClient.Spot.Market.GetTickersAsync();
+
             if (response.Success)
                 return response.Data.ToList();
             else
