@@ -50,13 +50,14 @@ namespace Trade02
                 previousData = response;
                 Console.WriteLine("----------------- List incial capturada ");
                 Console.WriteLine();
-                // fazer essa busca a cada 1 minutos e verificar se algumas moedas subiram mais de 1%, se sim, compra
+
+                // fazer essa busca a cada 1 minuto e verificar se algumas moedas subiram mais de 1%, se sim, recomenda compra
                 while (runner)
                 {
                     // a primeira ação desse while é rodar o motor de posições abertas para verificar se precisa fazer vendas
                     // rodar esse de 30 em 30 segundos
 
-                    await Task.Delay(30000, stoppingToken);
+                    await Task.Delay(60000, stoppingToken);
                     Console.WriteLine("------- Monitoramento -------");
                     previousCounter++;
 

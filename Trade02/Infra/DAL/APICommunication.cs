@@ -51,7 +51,7 @@ namespace Trade02.Infra.DAL
 
         public async Task<object> PlaceOrder(string symbol, decimal quantity)
         {
-            // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos BTC o USDT irá comprar
+            // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos USDT vai gastar para comprar BTC
             //var callResult = await _binanceClient.Spot.Order.PlaceTestOrderAsync("MANAUSDT", OrderSide.Buy, OrderType.Market, quoteOrderQuantity: 10);
             var response = await _binanceClient.Spot.Order.PlaceTestOrderAsync(symbol, OrderSide.Buy, OrderType.Market, quoteOrderQuantity: quantity);
 
