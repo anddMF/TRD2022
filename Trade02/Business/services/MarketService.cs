@@ -50,7 +50,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: GetTopPercentages(), message: {ex.Message}");
                 throw;
             }
         }
@@ -88,7 +88,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PlaceBuyOrder(), message: {ex.Message}");
                 // não vai subir com erro pra não parar a aplicação
                 return null;
             }
@@ -105,7 +105,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PlaceSellOrder(), message: {ex.Message}");
                 // não vai subir com erro pra não parar a aplicação
                 return null;
             }
@@ -127,7 +127,7 @@ namespace Trade02.Business.services
                     if (order == null)
                     {
                         // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                        _logger.LogWarning($"compra de {current.Symbol} nao executada");
+                        _logger.LogWarning($"### compra de {current.Symbol} NAO EXECUTADA ###");
                     }
                     else
                     {

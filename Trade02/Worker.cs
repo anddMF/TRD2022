@@ -90,7 +90,7 @@ namespace Trade02
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: ExecuteAsync(), message: {ex.Message}");
                 throw ex;
             }
 
