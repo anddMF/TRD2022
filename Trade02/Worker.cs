@@ -37,20 +37,21 @@ namespace Trade02
             try
             {
                 bool runner = true;
+                bool debug = false;
 
-                var testeOrder = await _marketSvc.PlaceOrder("MANAUSDT");
-                // a cada X minutos, renovar os dados da lista previousData. Se por X minutos essas moedas não valorizaram 1%, renova a lista.
+                //var testeOrder = await _marketSvc.PlaceOrder("MANAUSDT");
+                
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
                 int previousCounter = 0;
 
                 // precisa de um get para retornar moedas já possuídas; posso alimentar isso com um valor no appsettings
-                List<string> symbolsOwned = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT" };
+                List<string> symbolsOwned = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT", "DOWNUSDT", "UPUSDT" };
 
-                // primeiro load da previousData
-                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(10, "USDT", (decimal)10.2, symbolsOwned);
+                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(20, "USDT", 12, symbolsOwned);
                 previousData = response;
-                Console.WriteLine("----------------- List incial capturada ");
+
+                Console.WriteLine("----------------- Lista incial capturada ------------------");
                 Console.WriteLine();
 
                 // fazer essa busca a cada 1 minuto e verificar se algumas moedas subiram mais de 1%, se sim, recomenda compra
@@ -60,6 +61,7 @@ namespace Trade02
                     // rodar esse de 30 em 30 segundos
 
                     await Task.Delay(60000, stoppingToken);
+
                     Console.WriteLine("------- Monitoramento -------");
                     previousCounter++;
 
@@ -67,25 +69,27 @@ namespace Trade02
                     // que seria perdida em outra camada
                     response = await _marketSvc.MonitorTopPercentages(previousData);
 
-                    List<IBinanceTick> oportunities = CheckOportunities(response, previousData);
-                    if(oportunities.Count > 1)
+                    List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(response, previousData);
+                    if (oportunities.Count > 1)
                     {
-                        var executedOrder = await _marketSvc.ExecuteOrder(openPositions, symbolsOwned, oportunities, response);
-                    } else
+                        var executedOrder = await _marketSvc.ExecuteOrder(openPositions, symbolsOwned, oportunities, response, previousCounter, debug);
+                    }
+                    else
                     {
                         _logger.LogWarning($"SEM OPORTUNIDADES {DateTimeOffset.Now}");
                     }
 
-                    // 5 minutos para renovar os dados base da previousData
-                    if(previousCounter == 10)
+                    // X minutos para renovar os dados base da previousData
+                    if (previousCounter == 15)
                     {
                         previousCounter = 0;
-                        response = await _marketSvc.GetTopPercentages(10, "USDT", 11, symbolsOwned);
+                        response = await _marketSvc.GetTopPercentages(20, "USDT", 12, symbolsOwned);
                         previousData = response;
                     }
                 }
 
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
                 throw ex;
@@ -96,27 +100,6 @@ namespace Trade02
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
                 await Task.Delay(1000, stoppingToken);
             }
-        }
-
-        /// <summary>
-        /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida
-        /// e, por consequência, uma possível compra. Retorna a lista de moedas que atendam a estes requisitos.
-        /// </summary>
-        /// <param name="currentData"></param>
-        /// <param name="previousData"></param>
-        /// <returns>Lista com as oportunidades de possíveis compras</returns>
-        public static List<IBinanceTick> CheckOportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
-        {
-            List<IBinanceTick> result = new List<IBinanceTick>();
-
-            var res = from obj in currentData
-                      join prev in previousData on obj.Symbol equals prev.Symbol
-                      where obj.PriceChangePercent - prev.PriceChangePercent > 1
-                      select prev;
-
-            result = res.ToList();
-
-            return result;
         }
     }
 }

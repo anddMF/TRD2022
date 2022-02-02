@@ -50,22 +50,29 @@ namespace Trade02.Infra.DAL
 
         }
 
-        public async Task<BinancePlacedOrder> PlaceOrder(string symbol, decimal quantity)
+        /// <summary>
+        /// Método para enviar uma ordem na Binance
+        /// </summary>
+        /// <param name="symbol">símbolo da ordem</param>
+        /// <param name="quantity">quantidade a ser executada</param>
+        /// <param name="operation">Buy ou Sell</param>
+        /// <returns></returns>
+        public async Task<BinancePlacedOrder> PlaceOrder(string symbol, decimal quantity, OrderSide operation)
         {
             // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos USDT vai gastar para comprar BTC
             //var callResult = await _binanceClient.Spot.Order.PlaceTestOrderAsync("MANAUSDT", OrderSide.Buy, OrderType.Market, quoteOrderQuantity: 10);
-            var response = await _binanceClient.Spot.Order.PlaceTestOrderAsync(symbol, OrderSide.Buy, OrderType.Market, quoteOrderQuantity: quantity);
+            var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quoteOrderQuantity: quantity);
 
             if (response.Success)
                 return response.Data;
             else
-                throw new Exception("ERRO");
-                //throw new Exception(response.Error.Message);
+                throw new Exception(response.Error.Message);
+
             //var open = await _binanceClient.Spot.Order.GetOpenOrdersAsync("MANAUSDT");
         }
 
         /// <summary>
-        /// Generic method for different APIs
+        /// Método genérico para APIs diferentes
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="site"></param>

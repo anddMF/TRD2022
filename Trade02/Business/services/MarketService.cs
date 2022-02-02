@@ -1,4 +1,5 @@
-﻿using Binance.Net.Interfaces;
+﻿using Binance.Net.Enums;
+using Binance.Net.Interfaces;
 using Binance.Net.Objects.Spot.SpotData;
 using Microsoft.Extensions.Logging;
 using System;
@@ -66,53 +67,100 @@ namespace Trade02.Business.services
                                         join monitor in toMonitor on all.Symbol equals monitor.Symbol
                                         select all;
 
-            return result.ToList();
+            return result.OrderByDescending(x => x.PriceChangePercent).ToList();
         }
 
-        public async Task<BinancePlacedOrder> PlaceOrder(string symbol)
+        /// <summary>
+        /// Envia ordem de compra
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public async Task<BinancePlacedOrder> PlaceBuyOrder(string symbol)
         {
             // calculo da quantidade
-            decimal quantity = 0;
+            decimal quantity = 10;
             try
             {
                 // preciso ver como confirmar que a operação já foi executada, não a ordem em si
-                BinancePlacedOrder order = await _clientSvc.PlaceOrder(symbol, quantity);
+                BinancePlacedOrder order = await _clientSvc.PlaceOrder(symbol, quantity, OrderSide.Buy);
 
                 return order;
             }
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
-                // não vai subir como erro pra não parar a aplicação
+                // não vai subir com erro pra não parar a aplicação
                 return null;
             }
         }
 
-        public async Task<OrderEngine> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> response)
+        public async Task<BinancePlacedOrder> PlaceSellOrder(string symbol, decimal quantity)
+        {
+            try
+            {
+                // tratamentos específicos para venda
+                BinancePlacedOrder order = await _clientSvc.PlaceOrder(symbol, quantity, OrderSide.Sell);
+
+                return order;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                // não vai subir com erro pra não parar a aplicação
+                return null;
+            }
+        }
+
+        public async Task<OrderEngine> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> response, int minute, bool debug = false)
         {
             for (int i = 0; i < oportunities.Count; i++)
             {
                 var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
 
                 var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
-                _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {previousCounter}: {count}, value: {oportunities[i].AskPrice}");
+                _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {count}, value: {oportunities[i].AskPrice}");
 
-                // executa a compra
-                var order = await PlaceOrder(current.Symbol);
-                if (order == null)
+                if (!debug)
                 {
-                    // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                }
-                else
-                {
-                    symbolsOwned.Add(current.Symbol);
+                    // executa a compra
+                    var order = await PlaceBuyOrder(current.Symbol);
+                    if (order == null)
+                    {
+                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                    }
+                    else
+                    {
+                        symbolsOwned.Add(current.Symbol);
 
-                    // mudar o askPrice do current para o executado na ordem
-                    openPositions.Add(new Position(current));
+                        // mudar o askPrice do current para o executado na ordem
+                        openPositions.Add(new Position(current));
+                    }
                 }
+                
             }
 
             return new OrderEngine(openPositions, symbolsOwned);
+        }
+
+        /// <summary>
+        /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida
+        /// e, por consequência, uma possível compra. Retorna a lista de moedas que atendam a estes requisitos.
+        /// </summary>
+        /// <param name="currentData"></param>
+        /// <param name="previousData"></param>
+        /// <returns>Lista com as oportunidades de possíveis compras</returns>
+        public List<IBinanceTick> CheckOportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
+        {
+            List<IBinanceTick> result = new List<IBinanceTick>();
+
+            var res = from obj in currentData
+                      join prev in previousData on obj.Symbol equals prev.Symbol
+                      where obj.PriceChangePercent - prev.PriceChangePercent > 1
+                      select prev;
+
+            result = res.ToList();
+
+            return result;
         }
 
         /// <summary>
