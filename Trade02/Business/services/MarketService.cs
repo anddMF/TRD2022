@@ -127,13 +127,14 @@ namespace Trade02.Business.services
                     if (order == null)
                     {
                         // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                        _logger.LogWarning($"compra de {current.Symbol} nao executada");
                     }
                     else
                     {
                         symbolsOwned.Add(current.Symbol);
 
-                        // mudar o askPrice do current para o executado na ordem
-                        openPositions.Add(new Position(current));
+                        // adicionar mais validações pois o quantity pode não ter sido 100% filled
+                        openPositions.Add(new Position(current, order.Price, order.Quantity));
                     }
                 }
                 

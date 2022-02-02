@@ -10,15 +10,19 @@ namespace Trade02.Models.Trade
         public IBinanceTick Data { get; set; }
         public decimal Valorization { get; set; }
         public decimal InitialValue { get; set; }
+        public decimal InitialCost { get; set; }
         public decimal LastValue { get; set; }
+        public decimal LastCost { get; set; }
 
         public Position()
         { }
-        public Position(IBinanceTick data)
+
+        public Position(IBinanceTick data, decimal orderPrice, decimal quantity)
         {
             Data = data;
             Valorization = 0;
-            InitialValue = data.AskPrice;
+            InitialCost = orderPrice;
+            InitialValue = orderPrice * quantity;
             LastValue = 0;
         }
 

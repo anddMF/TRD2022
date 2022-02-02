@@ -38,8 +38,6 @@ namespace Trade02
             {
                 bool runner = true;
                 bool debug = false;
-
-                //var testeOrder = await _marketSvc.PlaceOrder("MANAUSDT");
                 
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
@@ -70,6 +68,7 @@ namespace Trade02
                     response = await _marketSvc.MonitorTopPercentages(previousData);
 
                     List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(response, previousData);
+
                     if (oportunities.Count > 1)
                     {
                         var executedOrder = await _marketSvc.ExecuteOrder(openPositions, symbolsOwned, oportunities, response, previousCounter, debug);
