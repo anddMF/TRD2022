@@ -58,7 +58,8 @@ namespace Trade02.Infra.DAL
             if (response.Success)
                 return response.Data;
             else
-                throw new Exception(response.Error.Message);
+                throw new Exception("ERRO");
+                //throw new Exception(response.Error.Message);
             //var open = await _binanceClient.Spot.Order.GetOpenOrdersAsync("MANAUSDT");
         }
 

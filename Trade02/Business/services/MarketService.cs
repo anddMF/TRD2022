@@ -70,9 +70,18 @@ namespace Trade02.Business.services
         {
             // calculo da quantidade
             decimal quantity = 0;
-            var order = await _clientSvc.PlaceOrder(symbol,quantity);
+            try
+            {
+                var order = await _clientSvc.PlaceOrder(symbol, quantity);
 
-            return null;
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR at: {DateTimeOffset.Now}, message: {ex.Message}");
+                // não vai subir como erro pra não parar a aplicação
+                return null;
+            }
         }
 
         /// <summary>

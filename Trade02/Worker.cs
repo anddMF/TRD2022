@@ -68,14 +68,22 @@ namespace Trade02
                     List<IBinanceTick> oportunities = CheckOportunities(response, previousData);
                     if(oportunities.Count > 1)
                     {
-                        // motor de compra
-
                         for (int i = 0; i < oportunities.Count; i++)
                         {
                             var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
 
                             var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
                             _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {previousCounter}: {count}, value: {oportunities[i].AskPrice}");
+                            
+                            // executa a compra
+                            var order = await _marketSvc.PlaceOrder(current.Symbol);
+                            if(order == null)
+                            {
+                                // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                            } else
+                            {
+                                // coloca a moeda nas posições abertas para monitorar
+                            }
                         }
                     } else
                     {
