@@ -1,4 +1,5 @@
 ﻿using Binance.Net.Interfaces;
+using Binance.Net.Objects.Spot.SpotData;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Trade02.Infra.DAL;
+using Trade02.Models.CrossCutting;
+using Trade02.Models.Trade;
 
 namespace Trade02.Business.services
 {
@@ -28,7 +31,7 @@ namespace Trade02.Business.services
         /// <param name="currencySymbol">símbola da moeda que será utilizada para a compra</param>
         /// <param name="maxPercentage">porcentagem máxima da variação de preço</param>
         /// <returns></returns>
-        public async Task<List<IBinanceTick>> GetTopPercentages(int numberOfSymbols, string currencySymbol, decimal maxPercentage, List<string> ownedSymbols = null)
+        public async Task<List<IBinanceTick>> GetTopPercentages(int numberOfSymbols, string currencySymbol, decimal maxPercentage, List<string> ownedSymbols)
         {
             try
             {
@@ -66,15 +69,16 @@ namespace Trade02.Business.services
             return result.ToList();
         }
 
-        public async Task<object> PlaceOrder(string symbol)
+        public async Task<BinancePlacedOrder> PlaceOrder(string symbol)
         {
             // calculo da quantidade
             decimal quantity = 0;
             try
             {
-                var order = await _clientSvc.PlaceOrder(symbol, quantity);
+                // preciso ver como confirmar que a operação já foi executada, não a ordem em si
+                BinancePlacedOrder order = await _clientSvc.PlaceOrder(symbol, quantity);
 
-                return null;
+                return order;
             }
             catch (Exception ex)
             {
@@ -82,6 +86,33 @@ namespace Trade02.Business.services
                 // não vai subir como erro pra não parar a aplicação
                 return null;
             }
+        }
+
+        public async Task<OrderEngine> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> response)
+        {
+            for (int i = 0; i < oportunities.Count; i++)
+            {
+                var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
+
+                var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
+                _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {previousCounter}: {count}, value: {oportunities[i].AskPrice}");
+
+                // executa a compra
+                var order = await PlaceOrder(current.Symbol);
+                if (order == null)
+                {
+                    // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                }
+                else
+                {
+                    symbolsOwned.Add(current.Symbol);
+
+                    // mudar o askPrice do current para o executado na ordem
+                    openPositions.Add(new Position(current));
+                }
+            }
+
+            return new OrderEngine(openPositions, symbolsOwned);
         }
 
         /// <summary>
@@ -96,7 +127,8 @@ namespace Trade02.Business.services
             {
                 string current = ownedSymbols[i];
 
-                allSymbols.RemoveAll(x => x.Symbol.StartsWith(current));
+                //allSymbols.RemoveAll(x => x.Symbol.StartsWith(current));
+                allSymbols.RemoveAll(x => x.Symbol == current);
             }
 
             return allSymbols;

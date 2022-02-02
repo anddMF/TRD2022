@@ -16,6 +16,7 @@ using System.Web;
 using Trade02.Business.services;
 using Trade02.Infra.DAL;
 using Trade02.Infra.DAO;
+using Trade02.Models.Trade;
 
 namespace Trade02
 {
@@ -40,13 +41,14 @@ namespace Trade02
                 var testeOrder = await _marketSvc.PlaceOrder("MANAUSDT");
                 // a cada X minutos, renovar os dados da lista previousData. Se por X minutos essas moedas não valorizaram 1%, renova a lista.
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
+                List<Position> openPositions = new List<Position>();
                 int previousCounter = 0;
 
                 // precisa de um get para retornar moedas já possuídas; posso alimentar isso com um valor no appsettings
-                List<string> openPositions = new List<string>() { "BTC", "ETH", "AXS" };
+                List<string> symbolsOwned = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT" };
 
                 // primeiro load da previousData
-                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(10, "USDT", 10, openPositions);
+                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(10, "USDT", (decimal)10.2, symbolsOwned);
                 previousData = response;
                 Console.WriteLine("----------------- List incial capturada ");
                 Console.WriteLine();
@@ -68,23 +70,7 @@ namespace Trade02
                     List<IBinanceTick> oportunities = CheckOportunities(response, previousData);
                     if(oportunities.Count > 1)
                     {
-                        for (int i = 0; i < oportunities.Count; i++)
-                        {
-                            var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
-
-                            var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
-                            _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {previousCounter}: {count}, value: {oportunities[i].AskPrice}");
-                            
-                            // executa a compra
-                            var order = await _marketSvc.PlaceOrder(current.Symbol);
-                            if(order == null)
-                            {
-                                // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                            } else
-                            {
-                                // coloca a moeda nas posições abertas para monitorar
-                            }
-                        }
+                        var executedOrder = await _marketSvc.ExecuteOrder(openPositions, symbolsOwned, oportunities, response);
                     } else
                     {
                         _logger.LogWarning($"SEM OPORTUNIDADES {DateTimeOffset.Now}");
@@ -94,7 +80,7 @@ namespace Trade02
                     if(previousCounter == 10)
                     {
                         previousCounter = 0;
-                        response = await _marketSvc.GetTopPercentages(10, "USDT", 11, openPositions);
+                        response = await _marketSvc.GetTopPercentages(10, "USDT", 11, symbolsOwned);
                         previousData = response;
                     }
                 }

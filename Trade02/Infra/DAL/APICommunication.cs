@@ -2,6 +2,7 @@
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using Binance.Net.Objects;
+using Binance.Net.Objects.Spot.SpotData;
 using CryptoExchange.Net.Authentication;
 using Newtonsoft.Json;
 using System;
@@ -49,7 +50,7 @@ namespace Trade02.Infra.DAL
 
         }
 
-        public async Task<object> PlaceOrder(string symbol, decimal quantity)
+        public async Task<BinancePlacedOrder> PlaceOrder(string symbol, decimal quantity)
         {
             // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos USDT vai gastar para comprar BTC
             //var callResult = await _binanceClient.Spot.Order.PlaceTestOrderAsync("MANAUSDT", OrderSide.Buy, OrderType.Market, quoteOrderQuantity: 10);
