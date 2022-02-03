@@ -35,7 +35,7 @@ namespace Trade02.Infra.DAL
         }
 
         /// <summary>
-        /// Get dos dados de criptomoedas nas últimas 24h
+        /// Get dos dados de criptomoedas nas últimas 24h.
         /// </summary>
         /// <returns></returns>
         public async Task<List<IBinanceTick>> GetTickers()
@@ -45,6 +45,23 @@ namespace Trade02.Infra.DAL
 
             if (response.Success)
                 return response.Data.ToList();
+            else
+                throw new Exception(response.Error.Message);
+
+        }
+
+        /// <summary>
+        /// Get dos dados de uma única moeda nas últimas 24h.
+        /// </summary>
+        /// <param name="symbol">símbolo que será retornado</param>
+        /// <returns></returns>
+        public async Task<IBinanceTick> GetTicker(string symbol)
+        {
+            // await _binanceClient.General.GetDailySpotAccountSnapshotAsync();
+            var response = await _binanceClient.Spot.Market.GetTickerAsync(symbol);
+
+            if (response.Success)
+                return response.Data;
             else
                 throw new Exception(response.Error.Message);
 

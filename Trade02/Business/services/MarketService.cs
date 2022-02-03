@@ -14,6 +14,9 @@ using Trade02.Models.Trade;
 
 namespace Trade02.Business.services
 {
+    /// <summary>
+    /// Responsável por manipular dados de mercado.
+    /// </summary>
     public class MarketService
     {
         private static APICommunication _clientSvc;
@@ -55,6 +58,21 @@ namespace Trade02.Business.services
             }
         }
 
+        public async Task<IBinanceTick> GetSingleTicker(string symbol)
+        {
+            try
+            {
+                IBinanceTick data = await _clientSvc.GetTicker(symbol);
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: GetSingleTicker(), message: {ex.Message}");
+                return null;
+            }
+        }
+
         /// <summary>
         /// Retorna somente os dados da lista de moedas no input toMonitor.
         /// </summary>
@@ -64,8 +82,8 @@ namespace Trade02.Business.services
         {
             List<IBinanceTick> allSymbols = await _clientSvc.GetTickers();
             IEnumerable<IBinanceTick> result = from all in allSymbols
-                                        join monitor in toMonitor on all.Symbol equals monitor.Symbol
-                                        select all;
+                                               join monitor in toMonitor on all.Symbol equals monitor.Symbol
+                                               select all;
 
             return result.OrderByDescending(x => x.PriceChangePercent).ToList();
         }
@@ -137,7 +155,7 @@ namespace Trade02.Business.services
                         openPositions.Add(new Position(current, order.Price, order.Quantity));
                     }
                 }
-                
+
             }
 
             return new OrderEngine(openPositions, symbolsOwned);

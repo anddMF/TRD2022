@@ -44,21 +44,28 @@ namespace Trade02
                 int previousCounter = 0;
 
                 // precisa de um get para retornar moedas já possuídas; posso alimentar isso com um valor no appsettings
-                List<string> symbolsOwned = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT", "DOWNUSDT", "UPUSDT" };
+                List<string> ownedSymbols = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT", "DOWNUSDT", "UPUSDT" };
 
-                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(20, "USDT", 12, symbolsOwned);
+                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(20, "USDT", 12, ownedSymbols);
                 previousData = response;
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
                 Console.WriteLine();
 
-                // fazer essa busca a cada 1 minuto e verificar se algumas moedas subiram mais de 1%, se sim, recomenda compra
                 while (runner)
                 {
                     // a primeira ação desse while é rodar o motor de posições abertas para verificar se precisa fazer vendas
                     // rodar esse de 30 em 30 segundos
 
-                    await Task.Delay(60000, stoppingToken);
+                    if(openPositions.Count > 0)
+                    {
+                        // verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
+                        // tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
+                            // Se for lucro, atualizar propriedade do último valor mais alto e fazer essa comparação com esse novo valor
+
+                    }
+
+                    await Task.Delay(30000, stoppingToken);
 
                     Console.WriteLine("------- Monitoramento -------");
                     previousCounter++;
@@ -71,7 +78,9 @@ namespace Trade02
 
                     if (oportunities.Count > 1)
                     {
-                        var executedOrder = await _marketSvc.ExecuteOrder(openPositions, symbolsOwned, oportunities, response, previousCounter, debug);
+                        var executedOrder = await _marketSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, response, previousCounter, debug);
+                        openPositions = executedOrder.Positions;
+                        ownedSymbols = executedOrder.OwnedSymbols;
                     }
                     else
                     {
@@ -82,7 +91,7 @@ namespace Trade02
                     if (previousCounter == 15)
                     {
                         previousCounter = 0;
-                        response = await _marketSvc.GetTopPercentages(20, "USDT", 12, symbolsOwned);
+                        response = await _marketSvc.GetTopPercentages(20, "USDT", 12, ownedSymbols);
                         previousData = response;
                     }
                 }

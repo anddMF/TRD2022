@@ -10,9 +10,10 @@ namespace Trade02.Models.Trade
         public IBinanceTick Data { get; set; }
         public decimal Valorization { get; set; }
         public decimal InitialValue { get; set; }
-        public decimal InitialCost { get; set; }
+        public decimal InitialPrice { get; set; }
+        public decimal CurrentlPrice { get; set; }
         public decimal LastValue { get; set; }
-        public decimal LastCost { get; set; }
+        public decimal LastPrice { get; set; }
 
         public Position()
         { }
@@ -21,8 +22,10 @@ namespace Trade02.Models.Trade
         {
             Data = data;
             Valorization = 0;
-            InitialCost = orderPrice;
+            InitialPrice = orderPrice;
+            CurrentlPrice = orderPrice;
             InitialValue = orderPrice * quantity;
+            LastPrice = 0;
             LastValue = 0;
         }
 
