@@ -30,19 +30,46 @@ namespace Trade02.Business.services
             // verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
             // tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
             // Se for lucro, atualizar propriedade do último valor mais alto e fazer essa comparação com esse novo valor
+            List<Position> result = new List<Position>();
             try
             {
-                for(int i = 0; i < openPositions.Count; i++)
+                for (int i = 0; i < openPositions.Count; i++)
                 {
                     Position current = openPositions[i];
                     var market = await _marketSvc.GetSingleTicker(current.Data.Symbol);
 
-                    decimal change = ((market.AskPrice - current.CurrentlPrice) / current.CurrentlPrice) * 100;
+                    decimal currentChange = ((market.AskPrice - current.CurrentlPrice) / current.CurrentlPrice) * 100;
+                    if (currentChange > 0)
+                    {
+                        // entra na area de lucro ATUAL, não o total
+                        openPositions[i].CurrentlPrice = market.AskPrice;
+                        openPositions[i].Valorization += currentChange;
+                        result.Add(current);
+                    }
+                    else
+                    {
+                        // validação para a venda
+                        decimal totalChange = ((market.AskPrice - current.InitialPrice) / current.InitialPrice) * 100;
 
+                        if (totalChange < (decimal)-1.4)
+                        {
+                            // venda porque já ta no prejuízo
+                            // mas retorna essa moeda para continuar acompanhando
+                            break;
+                        }
+                        if (currentChange < (decimal)-1.4)
+                        {
+                            // venda porque pode ser a tendencia de queda
+                            // mas retorna essa moeda para continuar acompanhando
+                            break;
+                        }
+                        result.Add(current);
+                    }
                 }
                 return null;
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 return null;
             }
