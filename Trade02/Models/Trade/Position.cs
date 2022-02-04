@@ -11,7 +11,10 @@ namespace Trade02.Models.Trade
         public decimal Valorization { get; set; }
         public decimal InitialValue { get; set; }
         public decimal InitialPrice { get; set; }
-        public decimal CurrentlPrice { get; set; }
+        public decimal CurrentPrice { get; set; }
+        /// <summary>
+        /// O último valor total da criptomoeda (quantity * price)
+        /// </summary>
         public decimal LastValue { get; set; }
         public decimal LastPrice { get; set; }
 
@@ -23,10 +26,10 @@ namespace Trade02.Models.Trade
             Data = data;
             Valorization = 0;
             InitialPrice = orderPrice;
-            CurrentlPrice = orderPrice;
+            CurrentPrice = orderPrice;
             InitialValue = orderPrice * quantity;
             LastPrice = 0;
-            LastValue = 0;
+            LastValue = InitialValue;
         }
 
     }
