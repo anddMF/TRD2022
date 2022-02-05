@@ -26,12 +26,13 @@ namespace Trade02.Business.services
             _clientSvc = new APICommunication(clientFactory);
             _marketSvc = new MarketService(clientFactory, logger);
         }
-
+        
+        // precisa de manage do saldo de USDT da conta
         public async Task<PortfolioResponse> ManageOpenPositions(List<Position> openPositions, List<IBinanceTick> previousData)
         {
-            // verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
-            // tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
-            // Se for lucro, atualizar propriedade do último valor mais alto e fazer essa comparação com esse novo valor
+            // X verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
+            // X tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
+            // X Se for lucro, atualizar propriedade do último valor mais alto e fazer essa comparação com esse novo valor
             List<Position> result = new List<Position>();
             try
             {
@@ -61,7 +62,9 @@ namespace Trade02.Business.services
 
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.LastValue);
                             // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                            previousData.Add(marketPosition);
+                            if(order != null)
+                                previousData.Add(marketPosition);
+
                             break;
                         }
                         if (currentChange < (decimal)-1.4)
@@ -71,7 +74,8 @@ namespace Trade02.Business.services
 
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.LastValue);
                             // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                            previousData.Add(marketPosition);
+                            if(order != null)
+                                previousData.Add(marketPosition);
                             //order.Price;
                             break;
                         }
@@ -84,6 +88,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: ManageOpenPositions(), message: {ex.Message}");
                 return null;
             }
         }

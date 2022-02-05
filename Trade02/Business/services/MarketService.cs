@@ -140,19 +140,27 @@ namespace Trade02.Business.services
 
                 if (!debug)
                 {
-                    // executa a compra
-                    var order = await PlaceBuyOrder(current.Symbol);
-                    if (order == null)
+                    // controle de numero maximo de posicoes em aberto
+                    if(openPositions.Count < 5)
                     {
-                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                        _logger.LogWarning($"### compra de {current.Symbol} NAO EXECUTADA ###");
+                        // executa a compra
+                        var order = await PlaceBuyOrder(current.Symbol);
+                        if (order == null)
+                        {
+                            // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                            _logger.LogWarning($"### compra de {current.Symbol} NAO EXECUTADA ###");
+                        }
+                        else
+                        {
+                            symbolsOwned.Add(current.Symbol);
+
+                            // adicionar mais validações pois o quantity pode não ter sido 100% filled
+                            openPositions.Add(new Position(current, order.Price, order.Quantity));
+                        }
                     }
                     else
                     {
-                        symbolsOwned.Add(current.Symbol);
-
-                        // adicionar mais validações pois o quantity pode não ter sido 100% filled
-                        openPositions.Add(new Position(current, order.Price, order.Quantity));
+                        return new OrderEngine(openPositions, symbolsOwned);
                     }
                 }
 
