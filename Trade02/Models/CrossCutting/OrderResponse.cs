@@ -5,15 +5,15 @@ using Trade02.Models.Trade;
 
 namespace Trade02.Models.CrossCutting
 {
-    public class OrderEngine
+    public class OrderResponse
     {
         public List<Position> Positions { get; set; }
         public List<string> OwnedSymbols { get; set; }
 
-        public OrderEngine()
+        public OrderResponse()
         { }
 
-        public OrderEngine(List<Position> positions, List<string> ownedSymbols)
+        public OrderResponse(List<Position> positions, List<string> ownedSymbols)
         {
             Positions = positions;
             OwnedSymbols = ownedSymbols;

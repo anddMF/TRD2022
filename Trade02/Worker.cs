@@ -43,7 +43,7 @@ namespace Trade02
                 var acc = await _portfolioSvc.GetBalance();
                 bool runner = true;
                 bool debug = false;
-                
+
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
                 int previousCounter = 0;
@@ -62,7 +62,7 @@ namespace Trade02
                     // a primeira ação desse while é rodar o motor de posições abertas para verificar se precisa fazer vendas
                     // rodar esse de 30 em 30 segundos
 
-                    if(openPositions.Count > 0)
+                    if (openPositions.Count > 0)
                     {
                         // verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
                         // tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
@@ -74,7 +74,7 @@ namespace Trade02
 
                     await Task.Delay(30000, stoppingToken);
 
-                    if(openPositions.Count < 5)
+                    if (openPositions.Count < 5)
                     {
                         Console.WriteLine("------- Monitoramento -------");
                         previousCounter++;
@@ -87,9 +87,13 @@ namespace Trade02
 
                         if (oportunities.Count > 1)
                         {
-                            var executedOrder = await _marketSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, response, previousCounter, debug);
-                            openPositions = executedOrder.Positions;
-                            ownedSymbols = executedOrder.OwnedSymbols;
+                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, response, previousCounter, debug);
+
+                            if (executedOrder != null)
+                            {
+                                openPositions = executedOrder.Positions;
+                                ownedSymbols = executedOrder.OwnedSymbols;
+                            }
                         }
                         else
                         {
@@ -104,7 +108,14 @@ namespace Trade02
                             previousData = response;
                         }
                     }
-                    
+                    else
+                    {
+                        _logger.LogWarning($"#### #### #### #### #### #### ####");
+                        _logger.LogWarning($"#### Atingido numero maximo de posicoes em aberto ####");
+                        _logger.LogWarning($"#### #### #### #### #### #### ####");
+
+                    }
+
                 }
 
             }

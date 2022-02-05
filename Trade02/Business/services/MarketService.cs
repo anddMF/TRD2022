@@ -93,10 +93,8 @@ namespace Trade02.Business.services
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns></returns>
-        public async Task<BinancePlacedOrder> PlaceBuyOrder(string symbol)
+        public async Task<BinancePlacedOrder> PlaceBuyOrder(string symbol, decimal quantity)
         {
-            // calculo da quantidade
-            decimal quantity = 10;
             try
             {
                 // preciso ver como confirmar que a operação já foi executada, não a ordem em si
@@ -129,45 +127,7 @@ namespace Trade02.Business.services
             }
         }
 
-        public async Task<OrderEngine> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> response, int minute, bool debug = false)
-        {
-            for (int i = 0; i < oportunities.Count; i++)
-            {
-                var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
-
-                var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
-                _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {count}, value: {oportunities[i].AskPrice}");
-
-                if (!debug)
-                {
-                    // controle de numero maximo de posicoes em aberto
-                    if(openPositions.Count < 5)
-                    {
-                        // executa a compra
-                        var order = await PlaceBuyOrder(current.Symbol);
-                        if (order == null)
-                        {
-                            // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                            _logger.LogWarning($"### compra de {current.Symbol} NAO EXECUTADA ###");
-                        }
-                        else
-                        {
-                            symbolsOwned.Add(current.Symbol);
-
-                            // adicionar mais validações pois o quantity pode não ter sido 100% filled
-                            openPositions.Add(new Position(current, order.Price, order.Quantity));
-                        }
-                    }
-                    else
-                    {
-                        return new OrderEngine(openPositions, symbolsOwned);
-                    }
-                }
-
-            }
-
-            return new OrderEngine(openPositions, symbolsOwned);
-        }
+        
 
         /// <summary>
         /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida

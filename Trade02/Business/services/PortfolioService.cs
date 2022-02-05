@@ -96,6 +96,68 @@ namespace Trade02.Business.services
             }
         }
 
+        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> response, int minute, bool debug = false)
+        {
+            var balance = await GetBalance("USDT");
+            decimal totalUsdt = balance.Total;
+
+            // formula para se fazer compras de no minimo 14 usdt
+            decimal quantity = totalUsdt / (5 - openPositions.Count);
+            decimal support = totalUsdt / 14;
+            decimal supportQuantity = totalUsdt / support;
+
+            if (quantity < 14 && supportQuantity < 14)
+            {
+                _logger.LogWarning($"#### #### #### #### #### #### ####");
+                _logger.LogWarning($"#### SALDO USDT INSUFICIENTE PARA COMPRAS ####");
+                _logger.LogWarning($"#### Posicoes em aberto: {openPositions.Count} ####");
+                _logger.LogWarning($"#### #### #### #### #### #### ####");
+
+                return null;
+            }
+
+            quantity = Math.Max(quantity, supportQuantity);
+
+            for (int i = 0; i < oportunities.Count; i++)
+            {
+                var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
+
+                var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
+                _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {count}, value: {oportunities[i].AskPrice}");
+
+                if (!debug)
+                {
+                    // controle de numero maximo de posicoes em aberto
+                    if (openPositions.Count < 5)
+                    {
+                        // executa a compra
+                        var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
+                        if (order == null)
+                        {
+                            // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                            _logger.LogWarning($"#### #### #### #### #### #### ####");
+                            _logger.LogWarning($"### Compra de {current.Symbol} NAO EXECUTADA ###");
+                            _logger.LogWarning($"#### #### #### #### #### #### ####");
+                        }
+                        else
+                        {
+                            symbolsOwned.Add(current.Symbol);
+
+                            // adicionar mais validações pois o quantity pode não ter sido 100% filled
+                            openPositions.Add(new Position(current, order.Price, order.Quantity));
+                        }
+                    }
+                    else
+                    {
+                        return new OrderResponse(openPositions, symbolsOwned);
+                    }
+                }
+
+            }
+
+            return new OrderResponse(openPositions, symbolsOwned);
+        }
+
         /// <summary>
         /// Get dos balanços das moedas em carteira.
         /// </summary>
