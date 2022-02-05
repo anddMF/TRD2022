@@ -39,6 +39,8 @@ namespace Trade02
             Console.WriteLine("---------------#------ TRD2022 ------#----------------");
             try
             {
+
+                var acc = await _portfolioSvc.GetBalance();
                 bool runner = true;
                 bool debug = false;
                 

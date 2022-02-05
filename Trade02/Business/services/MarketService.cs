@@ -53,7 +53,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: GetTopPercentages(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.GetTopPercentages(), message: {ex.Message}");
                 throw;
             }
         }
@@ -68,7 +68,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: GetSingleTicker(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.GetSingleTicker(), message: {ex.Message}");
                 return null;
             }
         }
@@ -106,7 +106,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PlaceBuyOrder(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}");
                 // não vai subir com erro pra não parar a aplicação
                 return null;
             }
@@ -123,7 +123,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PlaceSellOrder(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}");
                 // não vai subir com erro pra não parar a aplicação
                 return null;
             }

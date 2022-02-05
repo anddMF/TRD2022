@@ -1,7 +1,9 @@
 ﻿using Binance.Net.Interfaces;
+using Binance.Net.Objects.Spot.SpotData;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,6 +20,7 @@ namespace Trade02.Business.services
     {
         private static APICommunication _clientSvc;
         private static MarketService _marketSvc;
+
         private readonly ILogger<Worker> _logger;
 
         public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
@@ -88,9 +91,50 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: ManageOpenPositions(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Get dos balanços das moedas em carteira.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<BinanceBalance>> GetBalance()
+        {
+            try
+            {
+                var response = await _clientSvc.GetAccountInfo();
+
+                return response.Balances.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
+                return null;
+            }
+            
+        }
+
+        /// <summary>
+        /// Get do balanço de uma moeda em carteira.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public async Task<BinanceBalance> GetBalance(string symbol)
+        {
+            try
+            {
+                var response = await _clientSvc.GetAccountInfo();
+
+                return response.Balances.ToList().Find(x => x.Asset == symbol);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
+                return null;
+            }
+
         }
     }
 }

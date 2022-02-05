@@ -89,6 +89,39 @@ namespace Trade02.Infra.DAL
         }
 
         /// <summary>
+        /// Get das informações da conta. Faz um filtro nos balances pois o endpoint retorna todas as moedas da binance, incluindo as que o user não possui saldo.
+        /// Portanto, o linq separa somente as com saldo.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<BinanceAccountInfo> GetAccountInfo()
+        {
+            BinanceAccountInfo data = new BinanceAccountInfo();
+            int tryCounter = 0;
+            while(tryCounter < 3)
+            {
+                var response = await _binanceClient.General.GetAccountInfoAsync();
+                if (response.Success)
+                {
+                    data = response.Data;
+                    data.Balances = from obj in data.Balances
+                                    where obj.Total > 0
+                                    select obj;
+                    tryCounter = 4;
+                }
+                else
+                {
+                    tryCounter++;
+
+                    if(tryCounter >= 3)
+                        throw new Exception(response.Error.Message);
+                }
+            }
+            
+            
+            return data;
+        }
+
+        /// <summary>
         /// Método genérico para APIs diferentes
         /// </summary>
         /// <typeparam name="T"></typeparam>
