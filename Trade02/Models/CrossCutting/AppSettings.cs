@@ -6,7 +6,12 @@ namespace Trade02.Models.CrossCutting
 {
     public class AppSettings
     {
-        public ApiConfiguration ApiConfiguration { get; set; }
+        public static ApiConfiguration ApiConfiguration { get; set; }
+
+        public static ApiConfiguration GetAPiConfiguration()
+        {
+            return ApiConfiguration;
+        }
     }
 
     public class ApiConfiguration

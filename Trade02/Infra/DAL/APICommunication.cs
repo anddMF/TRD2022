@@ -12,14 +12,13 @@ using System.Net.Http;
 //using System.Text;
 //using System.Text.Json;
 using System.Threading.Tasks;
+using Trade02.Models.CrossCutting;
 
 namespace Trade02.Infra.DAL
 {
     public class APICommunication
     {
         private static string API_KEY = "";
-        private static string BIN_KEY = "";
-        private static string BIN_SECRET = "";
 
         private static IHttpClientFactory _clientFactory;
         private static BinanceClient _binanceClient;
@@ -29,8 +28,8 @@ namespace Trade02.Infra.DAL
             _clientFactory = clientFactory;
             _binanceClient = new BinanceClient(new BinanceClientOptions()
             {
-                BaseAddress = "https://api.binance.com",
-                ApiCredentials = new ApiCredentials(BIN_KEY, BIN_SECRET)
+                BaseAddress = AppSettings.ApiConfiguration.Address,
+                ApiCredentials = new ApiCredentials(AppSettings.ApiConfiguration.Key, AppSettings.ApiConfiguration.Secret)
             });
         }
 

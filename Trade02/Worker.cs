@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Trade02.Business.services;
+using Trade02.Infra.Cross;
 using Trade02.Infra.DAL;
 using Trade02.Infra.DAO;
 using Trade02.Models.CrossCutting;
@@ -24,16 +25,14 @@ namespace Trade02
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly AppSettings _options;
         private static MarketService _marketSvc;
         private static PortfolioService _portfolioSvc;
 
-        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory, AppSettings options)
+        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory)
         {
             _logger = logger;
             _marketSvc = new MarketService(clientFactory, logger);
             _portfolioSvc = new PortfolioService(clientFactory, logger);
-            _options = options;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
