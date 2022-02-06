@@ -7,9 +7,11 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Trade02.Infra.Cross;
 using Trade02.Infra.DAL;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
+using static Trade02.Infra.Cross.ReportLog;
 
 namespace Trade02.Business.services
 {
@@ -30,12 +32,8 @@ namespace Trade02.Business.services
             _marketSvc = new MarketService(clientFactory, logger);
         }
         
-        // precisa de manage do saldo de USDT da conta
         public async Task<PortfolioResponse> ManageOpenPositions(List<Position> openPositions, List<IBinanceTick> previousData)
         {
-            // X verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
-            // X tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
-            // X Se for lucro, atualizar propriedade do último valor mais alto e fazer essa comparação com esse novo valor
             List<Position> result = new List<Position>();
             try
             {
@@ -44,42 +42,62 @@ namespace Trade02.Business.services
                     Position currentPosition = openPositions[i];
                     var marketPosition = await _marketSvc.GetSingleTicker(currentPosition.Data.Symbol);
 
-                    decimal currentChange = ((marketPosition.AskPrice - currentPosition.CurrentPrice) / currentPosition.CurrentPrice) * 100;
-                    if (currentChange > 0)
+                    decimal currentValorization = ((marketPosition.AskPrice - currentPosition.CurrentPrice) / currentPosition.CurrentPrice) * 100;
+                    decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
+
+                    // Valida a variação da moeda para vender se enxergar uma tendencia de queda (a partir do preço atual) ou uma valorização TOTAL negativa da moeda.
+                    // Caso tenha uma valorização positiva, atualiza os dados no open position e não executa a venda
+                    if (currentValorization > 0)
                     {
                         // entra na area de lucro ATUAL, não o total
 
                         openPositions[i].CurrentPrice = marketPosition.AskPrice;
-                        openPositions[i].Valorization += currentChange;
+                        openPositions[i].LastPrice = marketPosition.AskPrice;
+                        openPositions[i].LastValue = marketPosition.AskPrice * openPositions[i].Quantity;
+                        openPositions[i].Valorization += currentValorization;
                         result.Add(currentPosition);
                     }
                     else
                     {
-                        // validação para a venda
-                        decimal totalChange = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
-
-                        if (totalChange < (decimal)-1.4)
+                        if (totalValorization < (decimal)-1.4)
                         {
                             // venda porque já ta no prejuízo
-                            // também salva no arquivo a linha de venda
 
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.LastValue);
-                            // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                            if(order != null)
+                            
+                            if (order != null)
+                            {
+                                // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
                                 previousData.Add(marketPosition);
+
+                                openPositions[i].CurrentPrice = order.Price;
+                                openPositions[i].LastPrice = order.Price;
+                                openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
+                                openPositions[i].Valorization += totalValorization;
+
+                                ReportLog.WriteReport(logType.VENDA, openPositions[i]);
+                            }
 
                             break;
                         }
-                        if (currentChange < (decimal)-1.4)
+                        if (currentValorization < (decimal)-1.4)
                         {
                             // venda porque pode ser a tendencia de queda
-                            // também salva no arquivo a linha de venda
 
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.LastValue);
-                            // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
+                            
                             if(order != null)
+                            {
+                                // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
                                 previousData.Add(marketPosition);
-                            //order.Price;
+
+                                openPositions[i].CurrentPrice = order.Price;
+                                openPositions[i].LastPrice = order.Price;
+                                openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
+                                openPositions[i].Valorization += totalValorization;
+
+                                ReportLog.WriteReport(logType.VENDA, openPositions[i]);
+                            }
                             break;
                         }
                         result.Add(currentPosition);
@@ -141,10 +159,13 @@ namespace Trade02.Business.services
                         }
                         else
                         {
-                            symbolsOwned.Add(current.Symbol);
-
                             // adicionar mais validações pois o quantity pode não ter sido 100% filled
-                            openPositions.Add(new Position(current, order.Price, order.Quantity));
+
+                            symbolsOwned.Add(current.Symbol);
+                            Position position = new Position(current, order.Price, order.Quantity);
+                            openPositions.Add(position);
+
+                            ReportLog.WriteReport(logType.COMPRA, position);
                         }
                     }
                     else
