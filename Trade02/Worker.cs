@@ -24,14 +24,16 @@ namespace Trade02
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
+        private readonly AppSettings _options;
         private static MarketService _marketSvc;
         private static PortfolioService _portfolioSvc;
 
-        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory)
+        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory, AppSettings options)
         {
             _logger = logger;
             _marketSvc = new MarketService(clientFactory, logger);
             _portfolioSvc = new PortfolioService(clientFactory, logger);
+            _options = options;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -39,14 +41,12 @@ namespace Trade02
             Console.WriteLine("---------------#------ TRD2022 ------#----------------");
             try
             {
-
-                var acc = await _portfolioSvc.GetBalance();
                 bool runner = true;
                 bool debug = false;
 
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
-                int previousCounter = 0;
+                int minutesCounter = 0;
 
                 // precisa de um get para retornar moedas já possuídas; posso alimentar isso com um valor no appsettings
                 List<string> ownedSymbols = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT", "DOWNUSDT", "UPUSDT" };
@@ -60,8 +60,6 @@ namespace Trade02
                 while (runner)
                 {
                     // a primeira ação desse while é rodar o motor de posições abertas para verificar se precisa fazer vendas
-                    // rodar esse de 30 em 30 segundos
-
                     if (openPositions.Count > 0)
                     {
                         // verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
@@ -77,7 +75,7 @@ namespace Trade02
                     if (openPositions.Count < 5)
                     {
                         Console.WriteLine("------- Monitoramento -------");
-                        previousCounter++;
+                        minutesCounter++;
 
                         // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. Problema é a lista previousData
                         // que seria perdida em outra camada
@@ -87,7 +85,7 @@ namespace Trade02
 
                         if (oportunities.Count > 1)
                         {
-                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, response, previousCounter, debug);
+                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, response, minutesCounter, debug);
 
                             if (executedOrder != null)
                             {
@@ -101,9 +99,9 @@ namespace Trade02
                         }
 
                         // X minutos para renovar os dados base da previousData
-                        if (previousCounter == 15)
+                        if (minutesCounter == 30)
                         {
-                            previousCounter = 0;
+                            minutesCounter = 0;
                             response = await _marketSvc.GetTopPercentages(20, "USDT", 12, ownedSymbols);
                             previousData = response;
                         }

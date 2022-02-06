@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Trade02.Models.CrossCutting;
 
 namespace Trade02
 {
@@ -18,6 +20,10 @@ namespace Trade02
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
+                    IConfiguration configuration = hostContext.Configuration;
+                    AppSettings options = configuration.GetSection("AppConfiguration").Get<AppSettings>();
+
+                    services.AddSingleton(options);
                     services.AddHttpClient("coinMarket", c =>
                     {
                         c.BaseAddress = new Uri("https://pro-api.coinmarketcap.com/");
