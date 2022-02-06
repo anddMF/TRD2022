@@ -34,9 +34,16 @@ namespace Trade02.Business.services
             _clientSvc = new APICommunication(clientFactory);
             _marketSvc = new MarketService(clientFactory, logger);
         }
-        
+
+        /// <summary>
+        /// Motor de manipulação das posições em aberto. A partir de certas condições, determina o sell ou hold da posição.
+        /// </summary>
+        /// <param name="openPositions">posições em aberto</param>
+        /// <param name="previousData">dados que estão sendo monitorados, usado somente para Add de moedas a serem monitoradas</param>
+        /// <returns>lista de posições ainda em aberto</returns>
         public async Task<PortfolioResponse> ManageOpenPositions(List<Position> openPositions, List<IBinanceTick> previousData)
         {
+            // lista que será retornada com as posições que foram mantidas em aberto
             List<Position> result = new List<Position>();
             try
             {
@@ -44,6 +51,7 @@ namespace Trade02.Business.services
                 {
                     Position currentPosition = openPositions[i];
                     var marketPosition = await _marketSvc.GetSingleTicker(currentPosition.Data.Symbol);
+                    // -0.01 adicionado para o preço de venda ter menos chance de não ser executado
                     openPositions[i].LastValue = (marketPosition.AskPrice * openPositions[i].Quantity) - (decimal)0.01;
 
                     decimal currentValorization = ((marketPosition.AskPrice - currentPosition.CurrentPrice) / currentPosition.CurrentPrice) * 100;
@@ -57,20 +65,17 @@ namespace Trade02.Business.services
                     {
                         //Console.WriteLine($"\n############## Manage: ticker {openPositions[i].Data.Symbol}, valorizado em {totalValorization}, current {currentValorization}");
 
-                        openPositions[i].CurrentPrice = marketPosition.AskPrice;
                         openPositions[i].LastPrice = marketPosition.AskPrice;
                         openPositions[i].LastValue = marketPosition.AskPrice * openPositions[i].Quantity;
-                        openPositions[i].Valorization += currentValorization;
+                        openPositions[i].Valorization = totalValorization;
                         result.Add(currentPosition);
                     }
                     else
                     {
-                        if (totalValorization < (decimal)-1.4)
+                        if (totalValorization <= (decimal)-1.2)
                         {
-                            // venda porque já ta no prejuízo
-
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
-                            
+
                             if (order != null)
                             {
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
@@ -79,7 +84,7 @@ namespace Trade02.Business.services
                                 openPositions[i].CurrentPrice = order.Price;
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
-                                openPositions[i].Valorization += totalValorization;
+                                openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
                                 _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
 
@@ -88,13 +93,11 @@ namespace Trade02.Business.services
 
                             break;
                         }
-                        if (currentValorization < (decimal)-1.4)
+                        if (currentValorization <= (decimal)-1.4)
                         {
-                            // venda porque pode ser a tendencia de queda
-
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
-                            
-                            if(order != null)
+
+                            if (order != null)
                             {
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
                                 previousData.Add(marketPosition);
@@ -102,7 +105,7 @@ namespace Trade02.Business.services
                                 openPositions[i].CurrentPrice = order.Price;
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
-                                openPositions[i].Valorization += totalValorization;
+                                openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
                                 _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
 
@@ -115,7 +118,6 @@ namespace Trade02.Business.services
                 }
 
                 return new PortfolioResponse(previousData, result);
-
             }
             catch (Exception ex)
             {
@@ -124,7 +126,16 @@ namespace Trade02.Business.services
             }
         }
 
-        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> response, int minute, bool debug = false)
+        /// <summary>
+        /// Executa as ordens de compras que cumpram as condições necessárias para tal.
+        /// </summary>
+        /// <param name="openPositions">posições em aberto pelo robô</param>
+        /// <param name="symbolsOwned"></param>
+        /// <param name="oportunities">dados previous de moedas que valorizaram positivamente</param>
+        /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
+        /// <param name="minute"></param>
+        /// <returns></returns>
+        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> currentMarket, int minute)
         {
             var balance = await GetBalance("USDT");
             decimal totalUsdt = balance.Total;
@@ -148,38 +159,34 @@ namespace Trade02.Business.services
 
             for (int i = 0; i < oportunities.Count; i++)
             {
-                var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
-
-                var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
-                _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {count}, value: {oportunities[i].AskPrice}");
-
-                if (!debug)
+                if (openPositions.Count < maxOpenPositions)
                 {
-                    // controle de numero maximo de posicoes em aberto
-                    if (openPositions.Count < maxOpenPositions)
+                    var current = currentMarket.Find(x => x.Symbol == oportunities[i].Symbol);
+
+                    var percentageChange = current.PriceChangePercent - oportunities[i].PriceChangePercent;
+                    _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {percentageChange}, price: {oportunities[i].AskPrice}");
+
+                    // executa a compra
+                    var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
+                    if (order == null)
                     {
-                        // executa a compra
-                        var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
-                        if (order == null)
-                        {
-                            // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {current.Symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
-                        }
-                        else
-                        {
-                            // adicionar mais validações pois o quantity pode não ter sido 100% filled
-
-                            symbolsOwned.Add(current.Symbol);
-                            Position position = new Position(current, order.Price, order.Quantity);
-                            openPositions.Add(position);
-
-                            ReportLog.WriteReport(logType.COMPRA, position);
-                        }
+                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {current.Symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
                     }
                     else
                     {
-                        return new OrderResponse(openPositions, symbolsOwned);
+                        // adicionar mais validações pois o quantity pode não ter sido 100% filled
+
+                        symbolsOwned.Add(current.Symbol);
+                        Position position = new Position(current, order.Price, order.Quantity);
+                        openPositions.Add(position);
+
+                        ReportLog.WriteReport(logType.COMPRA, position);
                     }
+                }
+                else
+                {
+                    return new OrderResponse(openPositions, symbolsOwned);
                 }
 
             }
@@ -204,7 +211,7 @@ namespace Trade02.Business.services
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
                 return null;
             }
-            
+
         }
 
         /// <summary>

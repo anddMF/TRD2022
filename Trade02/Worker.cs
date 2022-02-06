@@ -46,7 +46,6 @@ namespace Trade02
             try
             {
                 bool runner = true;
-                bool debug = false;
 
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
@@ -54,8 +53,8 @@ namespace Trade02
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
-                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                previousData = response;
+                List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
+                previousData = currentMarket;
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
                 Console.WriteLine();
@@ -80,13 +79,14 @@ namespace Trade02
 
                         // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. Problema é a lista previousData
                         // que seria perdida em outra camada
-                        response = await _marketSvc.MonitorTopPercentages(previousData);
+                        currentMarket = await _marketSvc.MonitorTopPercentages(previousData);
 
-                        List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(response, previousData);
+                        // retorna com os dados da previousData com tendencia de subida
+                        List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(currentMarket, previousData);
 
                         if (oportunities.Count > 1)
                         {
-                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, response, minutesCounter, debug);
+                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, currentMarket, minutesCounter);
 
                             if (executedOrder != null)
                             {
@@ -103,18 +103,18 @@ namespace Trade02
                         if (minutesCounter == 30)
                         {
                             minutesCounter = 0;
-                            response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
+                            currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
                             Console.WriteLine("----------------- Renovada lista de monitoramento");
 
-                            previousData = response;
+                            previousData = currentMarket;
                         }
                     }
                     else
                     {
                         _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####");
-                        response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
+                        currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
 
-                        previousData = response;
+                        previousData = currentMarket;
                     }
 
                 }

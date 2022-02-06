@@ -32,7 +32,7 @@ namespace Trade02.Business.services
         /// Retorna os símbolos com a maior valorização positiva ordenados na decrescente.
         /// </summary>
         /// <param name="numberOfSymbols">quantidade de símbolos que serão retornados</param>
-        /// <param name="currencySymbol">símbola da moeda que será utilizada para a compra</param>
+        /// <param name="currencySymbol">símbolo da moeda que será utilizada para a compra</param>
         /// <param name="maxPercentage">porcentagem máxima da variação de preço</param>
         /// <returns></returns>
         public async Task<List<IBinanceTick>> GetTopPercentages(int numberOfSymbols, string currencySymbol, decimal maxPercentage, List<string> ownedSymbols)
@@ -45,8 +45,6 @@ namespace Trade02.Business.services
 
                 filteredResult = RemoveOwnedCoins(filteredResult, ownedSymbols);
 
-                // maxPercentage=10; faz sentido ter esse limite porque as chances de pegar uma moeda que já cresceu o que tinha que crescer depois
-                // de 10% é maior do que uma moeda que valorizou menos de 10%
                 filteredResult.RemoveAll(x => x.PriceChangePercent > maxPercentage);
                 filteredResult = filteredResult.Take(numberOfSymbols).ToList();
                 return filteredResult;
@@ -58,6 +56,11 @@ namespace Trade02.Business.services
             }
         }
 
+        /// <summary>
+        /// Retorna os dados das últimas 24h de um determinado símbolo.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
         public async Task<IBinanceTick> GetSingleTicker(string symbol)
         {
             try
@@ -74,7 +77,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Retorna somente os dados da lista de moedas no input toMonitor.
+        /// Retorna os dados atuais das moedas enviadas no input.
         /// </summary>
         /// <param name="toMonitor">List de moedas para serem monitoradas</param>
         /// <returns>Retorna os dados mais recentes das moedas de input</returns>
@@ -89,9 +92,9 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Envia ordem de compra
+        /// Envia ordem de compra.
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="symbol">símbolo que será comprado</param>
         /// <returns></returns>
         public async Task<BinancePlacedOrder> PlaceBuyOrder(string symbol, decimal quantity)
         {
@@ -105,15 +108,14 @@ namespace Trade02.Business.services
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}");
-                // não vai subir com erro pra não parar a aplicação
                 return null;
             }
         }
 
         /// <summary>
-        /// 
+        /// Envia uma ordem de venda
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="symbol">símbolo que será vendido</param>
         /// <param name="quantity">quantidade da moeda que será vendida</param>
         /// <returns></returns>
         public async Task<BinancePlacedOrder> PlaceSellOrder(string symbol, decimal quantity)
@@ -128,7 +130,6 @@ namespace Trade02.Business.services
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}");
-                // não vai subir com erro pra não parar a aplicação
                 return null;
             }
         }
@@ -139,8 +140,8 @@ namespace Trade02.Business.services
         /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida
         /// e, por consequência, uma possível compra. Retorna a lista de moedas que atendam a estes requisitos.
         /// </summary>
-        /// <param name="currentData"></param>
-        /// <param name="previousData"></param>
+        /// <param name="currentData">dados atuais do market</param>
+        /// <param name="previousData">dados anteriormente separados</param>
         /// <returns>Lista com as oportunidades de possíveis compras</returns>
         public List<IBinanceTick> CheckOportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
         {
@@ -148,7 +149,7 @@ namespace Trade02.Business.services
 
             var res = from obj in currentData
                       join prev in previousData on obj.Symbol equals prev.Symbol
-                      where obj.PriceChangePercent - prev.PriceChangePercent > 1
+                      where obj.PriceChangePercent - prev.PriceChangePercent > (decimal)1.2
                       select prev;
 
             result = res.ToList();

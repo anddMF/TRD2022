@@ -56,7 +56,6 @@ namespace Trade02.Infra.DAL
         /// <returns></returns>
         public async Task<IBinanceTick> GetTicker(string symbol)
         {
-            // await _binanceClient.General.GetDailySpotAccountSnapshotAsync();
             var response = await _binanceClient.Spot.Market.GetTickerAsync(symbol);
 
             if (response.Success)
@@ -76,7 +75,6 @@ namespace Trade02.Infra.DAL
         public async Task<BinancePlacedOrder> PlaceOrder(string symbol, decimal quantity, OrderSide operation)
         {
             // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos USDT vai gastar para comprar BTC
-            //var callResult = await _binanceClient.Spot.Order.PlaceTestOrderAsync("MANAUSDT", OrderSide.Buy, OrderType.Market, quoteOrderQuantity: 10);
             if(operation == OrderSide.Buy)
             {
                 var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quoteOrderQuantity: quantity);
@@ -87,6 +85,7 @@ namespace Trade02.Infra.DAL
                     throw new Exception(response.Error.Message);
             } else
             {
+                // para venda o quantity é utilizado, pois ele recebe a quantidade da moeda possuída que será vendida
                 var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quantity: quantity);
 
                 if (response.Success)
@@ -94,8 +93,6 @@ namespace Trade02.Infra.DAL
                 else
                     throw new Exception(response.Error.Message);
             }
-
-
             //var open = await _binanceClient.Spot.Order.GetOpenOrdersAsync("MANAUSDT");
         }
 
@@ -175,6 +172,12 @@ namespace Trade02.Infra.DAL
 
         }
 
+        /// <summary>
+        /// Cria uma url com query params
+        /// </summary>
+        /// <param name="endpoint"></param>
+        /// <param name="param"></param>
+        /// <returns></returns>
         public string CreateUrlQuery(string endpoint, Dictionary<string, string> param)
         {
             string result = endpoint + "?";
