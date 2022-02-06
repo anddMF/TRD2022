@@ -47,6 +47,8 @@ namespace Trade02.Business.services
             List<Position> result = new List<Position>();
             try
             {
+                // SE O TICKER DE MINUTO FOR X E O TOTALVALORIZATION < 1, VENDE
+                Console.WriteLine($"----###### MANAGE: posicoes {openPositions.Count}");
                 for (int i = 0; i < openPositions.Count; i++)
                 {
                     Position currentPosition = openPositions[i];
@@ -86,14 +88,13 @@ namespace Trade02.Business.services
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
+                                _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
 
-                            break;
                         }
-                        if (currentValorization <= (decimal)-1.4)
+                        else if (currentValorization <= (decimal)-1.4)
                         {
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
 
@@ -112,8 +113,10 @@ namespace Trade02.Business.services
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
                             break;
+                        } else
+                        {
+                            result.Add(currentPosition);
                         }
-                        result.Add(currentPosition);
                     }
                 }
 

@@ -30,7 +30,7 @@ namespace Trade02.Models.Trade
             CurrentPrice = orderPrice;
             InitialValue = orderPrice * quantity;
             Quantity = quantity;
-            LastPrice = 0;
+            LastPrice = orderPrice;
             LastValue = InitialValue;
         }
 

@@ -63,6 +63,7 @@ namespace Trade02
                 {
                     await Task.Delay(20000, stoppingToken);
 
+                    Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}");
                     // Manipula as operacoes em aberto
                     if (openPositions.Count > 0)
                     {
