@@ -28,6 +28,11 @@ namespace Trade02
         private static MarketService _marketSvc;
         private static PortfolioService _portfolioSvc;
 
+        private readonly string currency = AppSettings.TradeConfiguration.Currency;
+        private readonly int maxToMonitor = AppSettings.TradeConfiguration.MaxToMonitor;
+        private readonly decimal maxSearchPercentage = AppSettings.TradeConfiguration.MaxSearchPercentage;
+        private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
+
         public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory)
         {
             _logger = logger;
@@ -47,10 +52,9 @@ namespace Trade02
                 List<Position> openPositions = new List<Position>();
                 int minutesCounter = 0;
 
-                // precisa de um get para retornar moedas já possuídas; posso alimentar isso com um valor no appsettings
-                List<string> ownedSymbols = new List<string>() { "BTCUSDT", "ETHUSDT", "AXSUSDT", "DOWNUSDT", "UPUSDT" };
+                List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
-                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(20, "USDT", 12, ownedSymbols);
+                List<IBinanceTick> response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
                 previousData = response;
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
@@ -71,7 +75,7 @@ namespace Trade02
 
                     await Task.Delay(30000, stoppingToken);
 
-                    if (openPositions.Count < 5)
+                    if (openPositions.Count < maxOpenPositions)
                     {
                         Console.WriteLine("------- Monitoramento -------");
                         minutesCounter++;
@@ -101,7 +105,7 @@ namespace Trade02
                         if (minutesCounter == 30)
                         {
                             minutesCounter = 0;
-                            response = await _marketSvc.GetTopPercentages(20, "USDT", 12, ownedSymbols);
+                            response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
                             previousData = response;
                         }
                     }

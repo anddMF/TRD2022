@@ -22,8 +22,10 @@ namespace Trade02.Business.services
     {
         private static APICommunication _clientSvc;
         private static MarketService _marketSvc;
-
         private readonly ILogger<Worker> _logger;
+
+        private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
+        private readonly int minUSDT = 15;
 
         public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
         {
@@ -119,12 +121,12 @@ namespace Trade02.Business.services
             var balance = await GetBalance("USDT");
             decimal totalUsdt = balance.Total;
 
-            // formula para se fazer compras de no minimo 14 usdt
-            decimal quantity = totalUsdt / (5 - openPositions.Count);
-            decimal support = totalUsdt / 14;
+            // formula para se fazer compras de no minimo 15 usdt
+            decimal quantity = totalUsdt / (maxOpenPositions - openPositions.Count);
+            decimal support = totalUsdt / minUSDT;
             decimal supportQuantity = totalUsdt / support;
 
-            if (quantity < 14 && supportQuantity < 14)
+            if (quantity < minUSDT && supportQuantity < minUSDT)
             {
                 _logger.LogWarning($"#### #### #### #### #### #### ####");
                 _logger.LogWarning($"#### SALDO USDT INSUFICIENTE PARA COMPRAS ####");
@@ -146,7 +148,7 @@ namespace Trade02.Business.services
                 if (!debug)
                 {
                     // controle de numero maximo de posicoes em aberto
-                    if (openPositions.Count < 5)
+                    if (openPositions.Count < maxOpenPositions)
                     {
                         // executa a compra
                         var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);

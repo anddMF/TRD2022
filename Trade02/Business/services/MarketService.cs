@@ -163,7 +163,7 @@ namespace Trade02.Business.services
                 string current = ownedSymbols[i];
 
                 //allSymbols.RemoveAll(x => x.Symbol.StartsWith(current));
-                allSymbols.RemoveAll(x => x.Symbol == current);
+                allSymbols.RemoveAll(x => x.Symbol.Contains(current));
             }
 
             return allSymbols;
