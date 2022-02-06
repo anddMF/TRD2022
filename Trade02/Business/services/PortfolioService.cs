@@ -25,6 +25,7 @@ namespace Trade02.Business.services
         private readonly ILogger<Worker> _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
+        private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
         private readonly int minUSDT = 15;
 
         public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
@@ -43,15 +44,18 @@ namespace Trade02.Business.services
                 {
                     Position currentPosition = openPositions[i];
                     var marketPosition = await _marketSvc.GetSingleTicker(currentPosition.Data.Symbol);
+                    openPositions[i].LastValue = (marketPosition.AskPrice * openPositions[i].Quantity) - (decimal)0.01;
 
                     decimal currentValorization = ((marketPosition.AskPrice - currentPosition.CurrentPrice) / currentPosition.CurrentPrice) * 100;
                     decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
+
+                    openPositions[i].CurrentPrice = marketPosition.AskPrice;
 
                     // Valida a variação da moeda para vender se enxergar uma tendencia de queda (a partir do preço atual) ou uma valorização TOTAL negativa da moeda.
                     // Caso tenha uma valorização positiva, atualiza os dados no open position e não executa a venda
                     if (currentValorization > 0)
                     {
-                        // entra na area de lucro ATUAL, não o total
+                        //Console.WriteLine($"\n############## Manage: ticker {openPositions[i].Data.Symbol}, valorizado em {totalValorization}, current {currentValorization}");
 
                         openPositions[i].CurrentPrice = marketPosition.AskPrice;
                         openPositions[i].LastPrice = marketPosition.AskPrice;
@@ -65,7 +69,7 @@ namespace Trade02.Business.services
                         {
                             // venda porque já ta no prejuízo
 
-                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.LastValue);
+                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
                             
                             if (order != null)
                             {
@@ -77,6 +81,8 @@ namespace Trade02.Business.services
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization += totalValorization;
 
+                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
+
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
 
@@ -86,7 +92,7 @@ namespace Trade02.Business.services
                         {
                             // venda porque pode ser a tendencia de queda
 
-                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.LastValue);
+                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
                             
                             if(order != null)
                             {
@@ -97,6 +103,8 @@ namespace Trade02.Business.services
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization += totalValorization;
+
+                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
@@ -111,7 +119,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
                 return null;
             }
         }
@@ -121,6 +129,9 @@ namespace Trade02.Business.services
             var balance = await GetBalance("USDT");
             decimal totalUsdt = balance.Total;
 
+            // teto de gastos
+            totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
+
             // formula para se fazer compras de no minimo 15 usdt
             decimal quantity = totalUsdt / (maxOpenPositions - openPositions.Count);
             decimal support = totalUsdt / minUSDT;
@@ -128,10 +139,7 @@ namespace Trade02.Business.services
 
             if (quantity < minUSDT && supportQuantity < minUSDT)
             {
-                _logger.LogWarning($"#### #### #### #### #### #### ####");
-                _logger.LogWarning($"#### SALDO USDT INSUFICIENTE PARA COMPRAS ####");
-                _logger.LogWarning($"#### Posicoes em aberto: {openPositions.Count} ####");
-                _logger.LogWarning($"#### #### #### #### #### #### ####");
+                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### SALDO USDT INSUFICIENTE PARA COMPRAS ####\n\t#### Posicoes em aberto: {openPositions.Count} ####\n\t#### #### #### #### #### #### ####");
 
                 return null;
             }
@@ -143,7 +151,7 @@ namespace Trade02.Business.services
                 var current = response.Find(x => x.Symbol == oportunities[i].Symbol);
 
                 var count = current.PriceChangePercent - oportunities[i].PriceChangePercent;
-                _logger.LogInformation($"COMPRA: {DateTimeOffset.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {count}, value: {oportunities[i].AskPrice}");
+                _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {count}, value: {oportunities[i].AskPrice}");
 
                 if (!debug)
                 {
@@ -155,9 +163,7 @@ namespace Trade02.Business.services
                         if (order == null)
                         {
                             // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                            _logger.LogWarning($"#### #### #### #### #### #### ####");
-                            _logger.LogWarning($"### Compra de {current.Symbol} NAO EXECUTADA ###");
-                            _logger.LogWarning($"#### #### #### #### #### #### ####");
+                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {current.Symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
                         }
                         else
                         {
@@ -195,7 +201,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
                 return null;
             }
             
@@ -216,7 +222,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
                 return null;
             }
 

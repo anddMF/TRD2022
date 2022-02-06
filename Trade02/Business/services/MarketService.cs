@@ -53,7 +53,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.GetTopPercentages(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.GetTopPercentages(), message: {ex.Message}");
                 throw;
             }
         }
@@ -68,7 +68,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.GetSingleTicker(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.GetSingleTicker(), message: {ex.Message}");
                 return null;
             }
         }
@@ -104,12 +104,18 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}");
                 // não vai subir com erro pra não parar a aplicação
                 return null;
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="quantity">quantidade da moeda que será vendida</param>
+        /// <returns></returns>
         public async Task<BinancePlacedOrder> PlaceSellOrder(string symbol, decimal quantity)
         {
             try
@@ -121,7 +127,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}");
                 // não vai subir com erro pra não parar a aplicação
                 return null;
             }

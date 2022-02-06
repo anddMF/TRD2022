@@ -62,22 +62,20 @@ namespace Trade02
 
                 while (runner)
                 {
-                    // a primeira ação desse while é rodar o motor de posições abertas para verificar se precisa fazer vendas
+                    await Task.Delay(20000, stoppingToken);
+
+                    // Manipula as operacoes em aberto
                     if (openPositions.Count > 0)
                     {
-                        // verificar os dados da moeda, comparar o valor atual com o valor de quando comprou (que está na lista)
-                        // tirar a porcentagem dessa diferença de valor, se for prejuízo de X%, executar a venda. 
-                        // Se for lucro, atualizar propriedade do último valor mais alto e fazer essa comparação com esse novo valor
                         PortfolioResponse res = await _portfolioSvc.ManageOpenPositions(openPositions, previousData);
                         openPositions = res.OpenPositions;
                         previousData = res.MonitorData;
                     }
 
-                    await Task.Delay(30000, stoppingToken);
 
                     if (openPositions.Count < maxOpenPositions)
                     {
-                        Console.WriteLine("------- Monitoramento -------");
+                        Console.WriteLine("----------------- Monitoramento ------------------");
                         minutesCounter++;
 
                         // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. Problema é a lista previousData
@@ -98,7 +96,7 @@ namespace Trade02
                         }
                         else
                         {
-                            _logger.LogWarning($"SEM OPORTUNIDADES {DateTimeOffset.Now}");
+                            _logger.LogWarning($"SEM OPORTUNIDADES {DateTime.Now}");
                         }
 
                         // X minutos para renovar os dados base da previousData
@@ -106,15 +104,17 @@ namespace Trade02
                         {
                             minutesCounter = 0;
                             response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
+                            Console.WriteLine("----------------- Renovada lista de monitoramento");
+
                             previousData = response;
                         }
                     }
                     else
                     {
-                        _logger.LogWarning($"#### #### #### #### #### #### ####");
-                        _logger.LogWarning($"#### Atingido numero maximo de posicoes em aberto ####");
-                        _logger.LogWarning($"#### #### #### #### #### #### ####");
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####");
+                        response = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
 
+                        previousData = response;
                     }
 
                 }
@@ -122,7 +122,7 @@ namespace Trade02
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTimeOffset.Now}, metodo: ExecuteAsync(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: ExecuteAsync(), message: {ex.Message}");
                 throw ex;
             }
 

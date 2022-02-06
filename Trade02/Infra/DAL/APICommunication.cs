@@ -77,12 +77,24 @@ namespace Trade02.Infra.DAL
         {
             // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos USDT vai gastar para comprar BTC
             //var callResult = await _binanceClient.Spot.Order.PlaceTestOrderAsync("MANAUSDT", OrderSide.Buy, OrderType.Market, quoteOrderQuantity: 10);
-            var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quoteOrderQuantity: quantity);
+            if(operation == OrderSide.Buy)
+            {
+                var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quoteOrderQuantity: quantity);
 
-            if (response.Success)
-                return response.Data;
-            else
-                throw new Exception(response.Error.Message);
+                if (response.Success)
+                    return response.Data;
+                else
+                    throw new Exception(response.Error.Message);
+            } else
+            {
+                var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quantity: quantity);
+
+                if (response.Success)
+                    return response.Data;
+                else
+                    throw new Exception(response.Error.Message);
+            }
+
 
             //var open = await _binanceClient.Spot.Order.GetOpenOrdersAsync("MANAUSDT");
         }
