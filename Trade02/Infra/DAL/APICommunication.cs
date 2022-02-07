@@ -77,7 +77,7 @@ namespace Trade02.Infra.DAL
             // "BTCUSDT" vai comprar BTC com USDT, coloca o quoteOrderQuantity que vai setar quantos USDT vai gastar para comprar BTC
             if(operation == OrderSide.Buy)
             {
-                var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quoteOrderQuantity: quantity);
+                var response = await _binanceClient.Spot.Order.PlaceOrderAsync(symbol, operation, OrderType.Market, quoteOrderQuantity: Math.Truncate(quantity));
 
                 if (response.Success)
                     return response.Data;

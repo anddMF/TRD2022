@@ -25,6 +25,7 @@ namespace Trade02.Business.services
         private readonly ILogger<Worker> _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
+        private readonly int maxPositionMinutes = AppSettings.TradeConfiguration.MaxPositionMinutes;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
         private readonly int minUSDT = 15;
 
@@ -58,27 +59,26 @@ namespace Trade02.Business.services
 
                     openPositions[i].Minutes++;
 
-                    decimal currentValorization = ((marketPosition.AskPrice - currentPosition.CurrentPrice) / currentPosition.CurrentPrice) * 100;
+                    decimal currentValorization = ((marketPosition.AskPrice - currentPosition.LastMaxPrice) / currentPosition.LastMaxPrice) * 100;
                     decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Data.Symbol}, {openPositions[i].Minutes}");
+                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Data.Symbol}, val: {totalValorization}, cur val: {currentValorization}");
 
-                    openPositions[i].CurrentPrice = marketPosition.AskPrice;
+                    openPositions[i].LastMaxPrice = Math.Max(marketPosition.AskPrice, currentPosition.LastMaxPrice);
 
                     // não ficar muito tempo com uma moeda andando de lado na carteira
-                    if(openPositions[i].Minutes >= 33 && totalValorization < 1)
+                    if(maxPositionMinutes > 0 && openPositions[i].Minutes >= maxPositionMinutes && totalValorization < 1)
                     {
                         Console.WriteLine("Caiu validacao do tempo");
                         var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
 
                         if (order != null)
                         {
-                            openPositions[i].CurrentPrice = order.Price;
                             openPositions[i].LastPrice = order.Price;
                             openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                             openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                            _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
+                            _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
 
                             ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                         }
@@ -105,18 +105,17 @@ namespace Trade02.Business.services
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
                                 previousData.Add(marketPosition);
 
-                                openPositions[i].CurrentPrice = order.Price;
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                                _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
+                                _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
 
                         }
-                        else if (currentValorization <= (decimal)-1.4)
+                        else if (currentValorization <= (decimal)-0.7)
                         {
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
 
@@ -125,16 +124,14 @@ namespace Trade02.Business.services
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
                                 previousData.Add(marketPosition);
 
-                                openPositions[i].CurrentPrice = order.Price;
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
+                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
-                            break;
                         } else
                         {
                             result.Add(currentPosition);
@@ -160,7 +157,7 @@ namespace Trade02.Business.services
         /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
         /// <param name="minute"></param>
         /// <returns></returns>
-        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> currentMarket, int minute)
+        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
         {
             var balance = await GetBalance("USDT");
             decimal totalUsdt = balance.Total;
@@ -205,18 +202,19 @@ namespace Trade02.Business.services
                         symbolsOwned.Add(current.Symbol);
                         Position position = new Position(current, order.Price, order.Quantity);
                         openPositions.Add(position);
+                        previousData.RemoveAll(x => x.Symbol == oportunities[i].Symbol);
 
                         ReportLog.WriteReport(logType.COMPRA, position);
                     }
                 }
                 else
                 {
-                    return new OrderResponse(openPositions, symbolsOwned);
+                    return new OrderResponse(openPositions, symbolsOwned, previousData);
                 }
 
             }
 
-            return new OrderResponse(openPositions, symbolsOwned);
+            return new OrderResponse(openPositions, symbolsOwned, previousData);
         }
 
         /// <summary>

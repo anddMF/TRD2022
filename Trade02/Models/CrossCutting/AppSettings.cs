@@ -31,6 +31,7 @@ namespace Trade02.Models.CrossCutting
         public string Currency { get; set; }
         public decimal MaxBuyAmount { get; set; }
         public int MaxToMonitor { get; set; }
+        public int MaxPositionMinutes { get; set; }
         public decimal MaxSearchPercentage { get; set; }
         public int MaxOpenPositions { get; set; }
         public List<string> OwnedSymbols { get; set; }

@@ -87,7 +87,7 @@ namespace Trade02
 
                         if (oportunities.Count > 1)
                         {
-                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, currentMarket, minutesCounter);
+                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, currentMarket, previousData, minutesCounter);
 
                             if (executedOrder != null)
                             {
