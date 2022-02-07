@@ -56,14 +56,36 @@ namespace Trade02.Business.services
                     // -0.01 adicionado para o preço de venda ter menos chance de não ser executado
                     openPositions[i].LastValue = (marketPosition.AskPrice * openPositions[i].Quantity) - (decimal)0.01;
 
+                    openPositions[i].Minutes++;
+
                     decimal currentValorization = ((marketPosition.AskPrice - currentPosition.CurrentPrice) / currentPosition.CurrentPrice) * 100;
                     decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
+                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Data.Symbol}, {openPositions[i].Minutes}");
+
                     openPositions[i].CurrentPrice = marketPosition.AskPrice;
 
+                    // não ficar muito tempo com uma moeda andando de lado na carteira
+                    if(openPositions[i].Minutes >= 33 && totalValorization < 1)
+                    {
+                        Console.WriteLine("Caiu validacao do tempo");
+                        var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
+
+                        if (order != null)
+                        {
+                            openPositions[i].CurrentPrice = order.Price;
+                            openPositions[i].LastPrice = order.Price;
+                            openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
+                            openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
+
+                            _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {openPositions[i].CurrentPrice}, initial: {openPositions[i].InitialPrice}");
+
+                            ReportLog.WriteReport(logType.VENDA, openPositions[i]);
+                        }
+                    }
                     // Valida a variação da moeda para vender se enxergar uma tendencia de queda (a partir do preço atual) ou uma valorização TOTAL negativa da moeda.
                     // Caso tenha uma valorização positiva, atualiza os dados no open position e não executa a venda
-                    if (currentValorization > 0)
+                    else if (currentValorization > 0)
                     {
                         //Console.WriteLine($"\n############## Manage: ticker {openPositions[i].Data.Symbol}, valorizado em {totalValorization}, current {currentValorization}");
 
@@ -147,7 +169,7 @@ namespace Trade02.Business.services
             totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
 
             // formula para se fazer compras de no minimo 15 usdt
-            decimal quantity = totalUsdt / (maxOpenPositions - openPositions.Count);
+            decimal quantity = totalUsdt / maxOpenPositions;
             decimal support = totalUsdt / minUSDT;
             decimal supportQuantity = totalUsdt / support;
 

@@ -18,6 +18,7 @@ namespace Trade02.Models.Trade
         public decimal LastValue { get; set; }
         public decimal LastPrice { get; set; }
         public decimal Quantity { get; set; }
+        public int Minutes { get; set; }
 
         public Position()
         { }
@@ -32,6 +33,7 @@ namespace Trade02.Models.Trade
             Quantity = quantity;
             LastPrice = orderPrice;
             LastValue = InitialValue;
+            Minutes = 1;
         }
 
     }
