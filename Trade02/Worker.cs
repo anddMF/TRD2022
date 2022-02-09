@@ -46,6 +46,7 @@ namespace Trade02
             try
             {
                 bool runner = true;
+                var aaa = _portfolioSvc.GetOrderBook();
 
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
@@ -83,25 +84,28 @@ namespace Trade02
                         currentMarket = await _marketSvc.MonitorTopPercentages(previousData);
 
                         // retorna com os dados da previousData com tendencia de subida
-                        List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(currentMarket, previousData);
-
-                        if (oportunities.Count > 1)
+                        if (minutesCounter > 1)
                         {
-                            var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, currentMarket, previousData, minutesCounter);
+                            List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(currentMarket, previousData);
 
-                            if (executedOrder != null)
+                            if (oportunities.Count > 1)
                             {
-                                openPositions = executedOrder.Positions;
-                                ownedSymbols = executedOrder.OwnedSymbols;
+                                var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, currentMarket, previousData, minutesCounter);
+
+                                if (executedOrder != null)
+                                {
+                                    openPositions = executedOrder.Positions;
+                                    ownedSymbols = executedOrder.OwnedSymbols;
+                                }
                             }
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"SEM OPORTUNIDADES {DateTime.Now}");
+                            else
+                            {
+                                _logger.LogWarning($"SEM OPORTUNIDADES {DateTime.Now}");
+                            }
                         }
 
                         // X minutos para renovar os dados base da previousData
-                        if (minutesCounter == 30)
+                        if (minutesCounter == 60)
                         {
                             minutesCounter = 0;
                             currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);

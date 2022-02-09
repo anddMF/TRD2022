@@ -149,10 +149,17 @@ namespace Trade02.Business.services
 
             var res = from obj in currentData
                       join prev in previousData on obj.Symbol equals prev.Symbol
-                      where obj.PriceChangePercent - prev.PriceChangePercent > (decimal)1.2
+                      where obj.PriceChangePercent - prev.PriceChangePercent > (decimal)0.3
+                      //where obj.PriceChangePercent - prev.PriceChangePercent > (decimal)0.4 && prev.WeightedAveragePrice < obj.AskPrice
                       select prev;
 
             result = res.ToList();
+
+            //foreach(var obj in previousData)
+            //{
+            //    var current = currentData.Find(x => x.Symbol == obj.Symbol);
+            //    // renovar os precos minimos e maximos 
+            //}
 
             return result;
         }

@@ -2,6 +2,7 @@
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using Binance.Net.Objects;
+using Binance.Net.Objects.Spot.MarketData;
 using Binance.Net.Objects.Spot.SpotData;
 using CryptoExchange.Net.Authentication;
 using Newtonsoft.Json;
@@ -41,6 +42,7 @@ namespace Trade02.Infra.DAL
         {
             // await _binanceClient.General.GetDailySpotAccountSnapshotAsync();
             var response = await _binanceClient.Spot.Market.GetTickersAsync();
+            //var asas = await _binanceClient.Spot.Market.GetKlinesAsync();
 
             if (response.Success)
                 return response.Data.ToList();
@@ -62,6 +64,21 @@ namespace Trade02.Infra.DAL
                 return response.Data;
             else
                 throw new Exception(response.Error.Message);
+
+        }
+        
+        public async Task<BinanceOrderBook> GetOrderBook()
+        {
+            var res = await _binanceClient.Spot.Market.GetOrderBookAsync("XTZUSDT", 10);
+            var ass = await _binanceClient.Spot.Market.GetKlinesAsync("XTZUSDT", KlineInterval.OneDay);
+            var ass2 = await _binanceClient.Spot.Market.GetKlinesAsync("PEOPLEUSDT", KlineInterval.OneDay);
+            var kline = ass.Data.ToList().Reverse<IBinanceKline>();
+            var kline2 = ass2.Data.ToList().Reverse<IBinanceKline>().ToList();
+
+            if (res.Success)
+                return res.Data;
+            else
+                throw new Exception(res.Error.Message);
 
         }
 

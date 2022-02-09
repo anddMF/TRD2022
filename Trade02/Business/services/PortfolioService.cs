@@ -1,4 +1,5 @@
 ﻿using Binance.Net.Interfaces;
+using Binance.Net.Objects.Spot.MarketData;
 using Binance.Net.Objects.Spot.SpotData;
 using Microsoft.Extensions.Logging;
 using System;
@@ -62,7 +63,7 @@ namespace Trade02.Business.services
                     decimal currentValorization = ((marketPosition.AskPrice - currentPosition.LastMaxPrice) / currentPosition.LastMaxPrice) * 100;
                     decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Data.Symbol}, val: {totalValorization}, cur val: {currentValorization}");
+                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Data.Symbol}, val: {totalValorization}, cur val: {currentValorization}, wei: {currentPosition.Data.WeightedAveragePrice}");
 
                     openPositions[i].LastMaxPrice = Math.Max(marketPosition.AskPrice, currentPosition.LastMaxPrice);
 
@@ -96,14 +97,17 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        if (totalValorization <= (decimal)-1.2)
+                        // colocar uma validacao teste pra se já tiver 1% de lucro, diminuir esse numero negativo para a venda, assim realiza pelo menos o 1%
+                        // se eu acabei de vim de uma subida de masi de 1% e meu lucro esta acima de 1%, low level >= 0
+                        decimal lowLevel = totalValorization >= (decimal)1 ? (decimal)-0.1 : (decimal)-0.3;
+                        if (totalValorization <= (decimal)-0.2)
                         {
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
 
                             if (order != null)
                             {
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                                previousData.Add(marketPosition);
+                                //previousData.Add(marketPosition);
 
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
@@ -115,14 +119,16 @@ namespace Trade02.Business.services
                             }
 
                         }
-                        else if (currentValorization <= (decimal)-0.7)
+                        else if (currentValorization <= lowLevel)
                         {
+                            Console.WriteLine("\n----- venda low level");
                             var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
 
                             if (order != null)
                             {
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                                previousData.Add(marketPosition);
+                                if(totalValorization > 0)
+                                    previousData.Add(marketPosition);
 
                                 openPositions[i].LastPrice = order.Price;
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
@@ -142,6 +148,20 @@ namespace Trade02.Business.services
                 return new PortfolioResponse(previousData, result);
             }
             catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<BinanceOrderBook> GetOrderBook()
+        {
+            try
+            {
+                var res = await _clientSvc.GetOrderBook();
+
+                return res;
+            } catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
                 return null;
