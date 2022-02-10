@@ -184,7 +184,7 @@ namespace Trade02.Business.services
         public async Task<bool> IsAKlineOportunitie(string symbol)
         {
             // separa os últimos X dias de klines
-            var klines = await _clientSvc.GetKlines(symbol, KlineInterval.OneDay);
+            var klines = await _clientSvc.GetKlines("DARUSDT", KlineInterval.OneDay);
             klines = klines.TakeLast(daysToAnalyze).ToList();
 
             decimal max = decimal.MinValue;

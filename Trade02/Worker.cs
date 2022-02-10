@@ -54,6 +54,7 @@ namespace Trade02
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
+                var ssss = await _marketSvc.CheckOpotunitiesByKlines(currentMarket);
                 previousData = currentMarket;
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
