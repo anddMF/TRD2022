@@ -22,6 +22,8 @@ namespace Trade02.Business.services
         private static APICommunication _clientSvc;
         private readonly ILogger<Worker> _logger;
 
+        private readonly int daysToAnalyze = AppSettings.TradeConfiguration.DaysToAnalyze + 1;
+
         public MarketService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
         {
             _logger = logger;
@@ -183,7 +185,7 @@ namespace Trade02.Business.services
         {
             // separa os últimos X dias de klines
             var klines = await _clientSvc.GetKlines(symbol, KlineInterval.OneDay);
-            klines = klines.TakeLast(8).ToList();
+            klines = klines.TakeLast(daysToAnalyze).ToList();
 
             decimal max = decimal.MinValue;
 

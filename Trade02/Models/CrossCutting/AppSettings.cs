@@ -34,6 +34,7 @@ namespace Trade02.Models.CrossCutting
         public int MaxPositionMinutes { get; set; }
         public decimal MaxSearchPercentage { get; set; }
         public int MaxOpenPositions { get; set; }
+        public int DaysToAnalyze { get; set; }
         public List<string> OwnedSymbols { get; set; }
     }
 }
