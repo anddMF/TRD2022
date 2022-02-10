@@ -168,11 +168,21 @@ namespace Trade02.Business.services
 
         public async Task<List<IBinanceTick>> CheckOpotunitiesByKlines(List<IBinanceTick> currentMarket)
         {
+            List<IBinanceTick> prevResponse = new List<IBinanceTick>();
             List<IBinanceTick> response = new List<IBinanceTick>();
             for(int i = 0; i < currentMarket.Count; i++)
             {
                 var current = currentMarket[i];
-                bool oportunitie = await IsAKlineOportunitie(current.Symbol);
+                bool oportunitie = await IsAKlineOportunitie(current.Symbol, KlineInterval.OneDay);
+
+                if (oportunitie)
+                    prevResponse.Add(current);
+            }
+
+            for (int i = 0; i < currentMarket.Count; i++)
+            {
+                var current = currentMarket[i];
+                bool oportunitie = await IsAKlineOportunitie(current.Symbol, KlineInterval.OneHour);
 
                 if (oportunitie)
                     response.Add(current);
@@ -181,10 +191,10 @@ namespace Trade02.Business.services
             return response;
         }
 
-        public async Task<bool> IsAKlineOportunitie(string symbol)
+        public async Task<bool> IsAKlineOportunitie(string symbol, KlineInterval interval)
         {
             // separa os últimos X dias de klines
-            var klines = await _clientSvc.GetKlines("DARUSDT", KlineInterval.OneDay);
+            var klines = await _clientSvc.GetKlines(symbol, interval);
             klines = klines.TakeLast(daysToAnalyze).ToList();
 
             decimal max = decimal.MinValue;
@@ -193,7 +203,7 @@ namespace Trade02.Business.services
 
             // maybe already dicard the ones tha had yesterday on a lower high than today
             // identifica uma oportunidade de uma moeda que está renovando suas máximas consequentemente. 
-            // o i < klines.Count pode ser Count - 1 se o teste for feito de manhã, mas se for a noite deixa assim
+            // o i < klines.Count pode ser Count - 1 se o teste for feito de manhã, mas deixa .Count se for a noite
             for (int i = 0; i < klines.Count ; i++)
             {
                 var current = klines[i];
@@ -224,6 +234,23 @@ namespace Trade02.Business.services
                 }
             }
             return true;
+        }
+
+        public decimal CalculateMovingAverage(int period, List<IBinanceKline> klines)
+        {
+            decimal sum = 0;
+            decimal average = 0;
+            klines = klines.TakeLast(period).ToList();
+
+            for(int i = 0; i < klines.Count; i++)
+            {
+                decimal currentAvg = (klines[i].High + klines[i].Low) / 2;
+                sum += currentAvg;
+            }
+
+            average = sum / period;
+
+            return average;
         }
 
         /// <summary>
