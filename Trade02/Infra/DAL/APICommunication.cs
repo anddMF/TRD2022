@@ -67,19 +67,25 @@ namespace Trade02.Infra.DAL
 
         }
         
-        public async Task<BinanceOrderBook> GetOrderBook()
+        public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
         {
-            var res = await _binanceClient.Spot.Market.GetOrderBookAsync("XTZUSDT", 10);
-            var ass = await _binanceClient.Spot.Market.GetKlinesAsync("XTZUSDT", KlineInterval.OneDay);
-            var ass2 = await _binanceClient.Spot.Market.GetKlinesAsync("PEOPLEUSDT", KlineInterval.OneDay);
-            var kline = ass.Data.ToList().Reverse<IBinanceKline>();
-            var kline2 = ass2.Data.ToList().Reverse<IBinanceKline>().ToList();
+            var res = await _binanceClient.Spot.Market.GetOrderBookAsync(symbol, limit);
 
             if (res.Success)
                 return res.Data;
             else
                 throw new Exception(res.Error.Message);
 
+        }
+
+        public async Task<List<IBinanceKline>> GetKlines(string symbol, KlineInterval interval)
+        {
+            var res = await _binanceClient.Spot.Market.GetKlinesAsync(symbol, interval);
+
+            if (res.Success)
+                return res.Data.ToList();
+            else
+                throw new Exception(res.Error.Message);
         }
 
         /// <summary>

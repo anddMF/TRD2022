@@ -164,6 +164,66 @@ namespace Trade02.Business.services
             return result;
         }
 
+        public async Task<List<IBinanceTick>> CheckOpotunitiesByKlines(List<IBinanceTick> currentMarket)
+        {
+            List<IBinanceTick> response = new List<IBinanceTick>();
+            for(int i = 0; i < currentMarket.Count; i++)
+            {
+                var current = currentMarket[i];
+                bool oportunitie = await IsAKlineOportunitie(current.Symbol);
+
+                if (oportunitie)
+                    response.Add(current);
+            }
+
+            return response;
+        }
+
+        public async Task<bool> IsAKlineOportunitie(string symbol)
+        {
+            // separa os últimos X dias de klines
+            var klines = await _clientSvc.GetKlines(symbol, KlineInterval.OneDay);
+            klines = klines.TakeLast(8).ToList();
+
+            decimal max = decimal.MinValue;
+
+            int flags = 0;
+
+            // maybe already dicard the ones tha had yesterday on a lower high than today
+            // identifica uma oportunidade de uma moeda que está renovando suas máximas consequentemente. 
+            // o i < klines.Count pode ser Count - 1 se o teste for feito de manhã, mas se for a noite deixa assim
+            for (int i = 0; i < klines.Count ; i++)
+            {
+                var current = klines[i];
+
+                if (current.High > max)
+                {
+                    max = current.High;
+                }
+                // se não renovar a máxima
+                else
+                {
+                    // verifica se já não tinha renovado antes
+                    if (flags >= 1)
+                    {
+                        // already has enough flags to discard this oportunitie
+                        return false;
+                    }
+                    // verifica se não está um dia antes de hoje
+                    if (flags == 0 && i < klines.Count - 2)
+                        flags++;
+                    
+                    // verifica se está um dia antes ou hoje
+                    if (flags == 0 && i >= klines.Count - 2)
+                    {
+                        // down on the day before, discard the oportunite
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Remove da lista de símbolos as moedas que já possuem posição em aberto.
         /// </summary>

@@ -154,13 +154,14 @@ namespace Trade02.Business.services
             }
         }
 
-        public async Task<BinanceOrderBook> GetOrderBook()
+        public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
         {
             try
             {
-                var res = await _clientSvc.GetOrderBook();
+                var res = await _clientSvc.GetOrderBook(symbol, limit);
 
                 return res;
+
             } catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");

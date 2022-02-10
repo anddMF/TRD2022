@@ -46,7 +46,6 @@ namespace Trade02
             try
             {
                 bool runner = true;
-                var aaa = _portfolioSvc.GetOrderBook();
 
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
