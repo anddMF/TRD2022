@@ -145,7 +145,7 @@ namespace Trade02.Business.services
         /// <param name="currentData">dados atuais do market</param>
         /// <param name="previousData">dados anteriormente separados</param>
         /// <returns>Lista com as oportunidades de possíveis compras</returns>
-        public List<IBinanceTick> CheckOportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
+        public List<IBinanceTick> CheckOpportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
         {
             List<IBinanceTick> result = new List<IBinanceTick>();
 
@@ -166,40 +166,64 @@ namespace Trade02.Business.services
             return result;
         }
 
-        public async Task<List<IBinanceTick>> CheckOpotunitiesByKlines(List<IBinanceTick> currentMarket)
+        public async Task<List<IBinanceTick>> CheckOppotunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes)
         {
             List<IBinanceTick> prevResponse = new List<IBinanceTick>();
             List<IBinanceTick> response = new List<IBinanceTick>();
-            for(int i = 0; i < currentMarket.Count; i++)
-            {
-                var current = currentMarket[i];
-                bool oportunitie = await IsAKlineOportunitie(current.Symbol, KlineInterval.OneDay);
+            List<IBinanceTick> response3 = new List<IBinanceTick>();
 
-                if (oportunitie)
-                    prevResponse.Add(current);
+            // o filtro do dia pega so de ontem, entao a moeda pode estar em queda hoje que ele nao vai pegar
+            if (days)
+            {
+                for (int i = 0; i < currentMarket.Count; i++)
+                {
+                    var current = currentMarket[i];
+                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneDay, daysToAnalyze);
+
+                    if (opportunity)
+                        prevResponse.Add(current);
+                }
             }
 
-            for (int i = 0; i < currentMarket.Count; i++)
-            {
-                var current = currentMarket[i];
-                bool oportunitie = await IsAKlineOportunitie(current.Symbol, KlineInterval.OneHour);
 
-                if (oportunitie)
-                    response.Add(current);
+            if (hours)
+            {
+                for (int i = 0; i < currentMarket.Count; i++)
+                {
+                    var current = currentMarket[i];
+                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneHour, 3);
+
+                    if (opportunity)
+                        response.Add(current);
+                }
+            }
+
+
+            if (minutes)
+            {
+                for (int i = 0; i < currentMarket.Count; i++)
+                {
+                    var current = currentMarket[i];
+                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.FifteenMinutes, 3);
+
+                    if (opportunity)
+                        response3.Add(current);
+                }
             }
 
             return response;
         }
 
-        public async Task<bool> IsAKlineOportunitie(string symbol, KlineInterval interval)
+        public async Task<bool> IsAKlineOpportunitie(string symbol, KlineInterval interval, int period)
         {
             // separa os últimos X dias de klines
-            var klines = await _clientSvc.GetKlines(symbol, interval);
-            klines = klines.TakeLast(daysToAnalyze).ToList();
+            var ogKlines = await _clientSvc.GetKlines(symbol, interval);
+            var klines = ogKlines.TakeLast(period).ToList();
 
             decimal max = decimal.MinValue;
 
             int flags = 0;
+            bool avg = false;
 
             // maybe already dicard the ones tha had yesterday on a lower high than today
             // identifica uma oportunidade de uma moeda que está renovando suas máximas consequentemente. 
@@ -218,7 +242,7 @@ namespace Trade02.Business.services
                     // verifica se já não tinha renovado antes
                     if (flags >= 1)
                     {
-                        // already has enough flags to discard this oportunitie
+                        // already has enough flags to discard this opportunity
                         return false;
                     }
                     // verifica se não está um dia antes de hoje
@@ -228,24 +252,28 @@ namespace Trade02.Business.services
                     // verifica se está um dia antes ou hoje
                     if (flags == 0 && i >= klines.Count - 2)
                     {
-                        // down on the day before, discard the oportunite
+                        // down on the day before, discard the opportunity
                         return false;
                     }
                 }
             }
-            return true;
+
+            // se chegou até aqui é porque ainda é valido
+            avg = SuperiorMovingAverage(ogKlines);
+
+            return avg;
         }
 
         public bool SuperiorMovingAverage(List<IBinanceKline> klines)
         {
-            decimal avg7 = CalculateMovingAverage(7, klines);
-            decimal avg25 = CalculateMovingAverage(25, klines);
+            decimal avg1 = CalculateMovingAverage(5, klines);
+            decimal avg2 = CalculateMovingAverage(10, klines);
 
-            if (avg7 > avg25)
+            if (avg1 > avg2)
             {
-                decimal percentage = ((avg7 - avg25) / avg25) * 100;
+                decimal percentage = ((avg1 - avg2) / avg2) * 100;
 
-                return percentage > 2;
+                return percentage > 1;
             }
             else
                 return false;

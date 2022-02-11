@@ -174,11 +174,11 @@ namespace Trade02.Business.services
         /// </summary>
         /// <param name="openPositions">posições em aberto pelo robô</param>
         /// <param name="symbolsOwned"></param>
-        /// <param name="oportunities">dados previous de moedas que valorizaram positivamente</param>
+        /// <param name="opportunities">dados previous de moedas que valorizaram positivamente</param>
         /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
         /// <param name="minute"></param>
         /// <returns></returns>
-        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> oportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
+        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> opportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
         {
             var balance = await GetBalance("USDT");
             decimal totalUsdt = balance.Total;
@@ -200,14 +200,14 @@ namespace Trade02.Business.services
 
             quantity = Math.Max(quantity, supportQuantity);
 
-            for (int i = 0; i < oportunities.Count; i++)
+            for (int i = 0; i < opportunities.Count; i++)
             {
                 if (openPositions.Count < maxOpenPositions)
                 {
-                    var current = currentMarket.Find(x => x.Symbol == oportunities[i].Symbol);
+                    var current = currentMarket.Find(x => x.Symbol == opportunities[i].Symbol);
 
-                    var percentageChange = current.PriceChangePercent - oportunities[i].PriceChangePercent;
-                    _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {oportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {percentageChange}, price: {oportunities[i].AskPrice}");
+                    var percentageChange = current.PriceChangePercent - opportunities[i].PriceChangePercent;
+                    _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {opportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {percentageChange}, price: {opportunities[i].AskPrice}");
 
                     // executa a compra
                     var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
@@ -223,7 +223,7 @@ namespace Trade02.Business.services
                         symbolsOwned.Add(current.Symbol);
                         Position position = new Position(current, order.Price, order.Quantity);
                         openPositions.Add(position);
-                        previousData.RemoveAll(x => x.Symbol == oportunities[i].Symbol);
+                        previousData.RemoveAll(x => x.Symbol == opportunities[i].Symbol);
 
                         ReportLog.WriteReport(logType.COMPRA, position);
                     }

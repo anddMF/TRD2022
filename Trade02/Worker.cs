@@ -54,7 +54,7 @@ namespace Trade02
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                var ssss = await _marketSvc.CheckOpotunitiesByKlines(currentMarket);
+                var ssss = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, false, false, false);
                 previousData = currentMarket;
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
@@ -86,11 +86,11 @@ namespace Trade02
                         // retorna com os dados da previousData com tendencia de subida
                         if (minutesCounter > 1)
                         {
-                            List<IBinanceTick> oportunities = _marketSvc.CheckOportunities(currentMarket, previousData);
+                            List<IBinanceTick> opportunities = _marketSvc.CheckOpportunities(currentMarket, previousData);
 
-                            if (oportunities.Count > 1)
+                            if (opportunities.Count > 1)
                             {
-                                var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, oportunities, currentMarket, previousData, minutesCounter);
+                                var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, opportunities, currentMarket, previousData, minutesCounter);
 
                                 if (executedOrder != null)
                                 {
