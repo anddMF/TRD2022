@@ -236,6 +236,21 @@ namespace Trade02.Business.services
             return true;
         }
 
+        public bool SuperiorMovingAverage(List<IBinanceKline> klines)
+        {
+            decimal avg7 = CalculateMovingAverage(7, klines);
+            decimal avg25 = CalculateMovingAverage(25, klines);
+
+            if (avg7 > avg25)
+            {
+                decimal percentage = ((avg7 - avg25) / avg25) * 100;
+
+                return percentage > 2;
+            }
+            else
+                return false;
+        }
+
         public decimal CalculateMovingAverage(int period, List<IBinanceKline> klines)
         {
             decimal sum = 0;
