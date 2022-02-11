@@ -68,7 +68,7 @@ namespace Trade02.Business.services
                     openPositions[i].LastMaxPrice = Math.Max(marketPosition.AskPrice, currentPosition.LastMaxPrice);
 
                     // não ficar muito tempo com uma moeda andando de lado na carteira
-                    if(maxPositionMinutes > 0 && openPositions[i].Minutes >= maxPositionMinutes && totalValorization < 1)
+                    if (maxPositionMinutes > 0 && openPositions[i].Minutes >= maxPositionMinutes && totalValorization < 1)
                     {
                         Console.WriteLine("Caiu validacao do tempo");
                         var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
@@ -127,7 +127,7 @@ namespace Trade02.Business.services
                             if (order != null)
                             {
                                 // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                                if(totalValorization > 0)
+                                if (totalValorization > 0)
                                     previousData.Add(marketPosition);
 
                                 openPositions[i].LastPrice = order.Price;
@@ -138,7 +138,8 @@ namespace Trade02.Business.services
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
-                        } else
+                        }
+                        else
                         {
                             result.Add(currentPosition);
                         }
@@ -162,7 +163,8 @@ namespace Trade02.Business.services
 
                 return res;
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
                 return null;
@@ -239,9 +241,80 @@ namespace Trade02.Business.services
             return new OrderResponse(openPositions, symbolsOwned, previousData);
         }
 
-        public async Task<OrderResponse> ExecuteOrder()
+        public async Task<OrderResponse> ExecuteOrder(List<string> symbols)
         {
+            decimal quantity = await GetUSDTAmount();
+            List<Position> openPositions = new List<Position>();
+            if (quantity == 0)
+                return null;
+
+            // rodar X vezes no loop e ver se o preço está só baixando, se ele somente cair não é um bom sinal. Se não conseguir fazer a compra por estar somente caindo, cancela essa recomendação.
+            decimal prevPrice = 0;
+            List<string> bought = new List<string>();
+            for (int i = 0; i < symbols.Count; i++)
+            {
+                string symbol = symbols[i];
+                prevPrice = 0;
+                int j = 0;
+                while (j < 5)
+                {
+                    var market = await _clientSvc.GetTicker(symbol);
+                    decimal price = market.AskPrice;
+
+                    if (j > 0 && price > prevPrice)
+                    {
+                        // faz a compra
+                        var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
+                        if (order == null)
+                        {
+                            // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                        }
+                        else
+                        {
+                            bought.Add(symbols[i]);
+
+                            Position position = new Position(market, order.Price, order.Quantity);
+                            openPositions.Add(position);
+
+                            ReportLog.WriteReport(logType.COMPRA, position);
+                        }
+                        
+                        j = 10;
+                    }
+
+                    prevPrice = price;
+                    j++;
+                }
+            }
+
+            // comparar as listas bought e symbols pra tratar as que nao foram compradas
             return null;
+        }
+
+        public async Task<decimal> GetUSDTAmount()
+        {
+            var balance = await GetBalance("USDT");
+            decimal totalUsdt = balance.Total;
+
+            // teto de gastos
+            totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
+
+            // formula para se fazer compras de no minimo 15 usdt
+            decimal quantity = totalUsdt / maxOpenPositions;
+            decimal support = totalUsdt / minUSDT;
+            decimal supportQuantity = totalUsdt / support;
+
+            if (quantity < minUSDT && supportQuantity < minUSDT)
+            {
+                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### SALDO USDT INSUFICIENTE PARA COMPRAS ####\n\t#### #### #### #### #### #### ####");
+
+                return 0;
+            }
+
+            quantity = Math.Max(quantity, supportQuantity);
+
+            return quantity;
         }
 
         /// <summary>

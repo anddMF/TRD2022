@@ -51,21 +51,6 @@ namespace Trade02.Infra.DAL
         }
 
         /// <summary>
-        /// Get do preço médio do símbolo de input
-        /// </summary>
-        /// <param name="symbol"></param>
-        /// <returns></returns>
-        public async Task<BinanceAveragePrice> GetAvgPrice(string symbol)
-        {
-            var response = await _binanceClient.Spot.Market.GetCurrentAvgPriceAsync(symbol); 
-
-            if (response.Success)
-                return response.Data;
-            else
-                throw new Exception(response.Error.Message);
-        }
-
-        /// <summary>
         /// Get dos dados de uma única moeda nas últimas 24h.
         /// </summary>
         /// <param name="symbol">símbolo que será retornado</param>
@@ -80,7 +65,22 @@ namespace Trade02.Infra.DAL
                 throw new Exception(response.Error.Message);
 
         }
-        
+
+        /// <summary>
+        /// Get do preço médio do símbolo de input
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public async Task<BinanceAveragePrice> GetAvgPrice(string symbol)
+        {
+            var response = await _binanceClient.Spot.Market.GetCurrentAvgPriceAsync(symbol);
+
+            if (response.Success)
+                return response.Data;
+            else
+                throw new Exception(response.Error.Message);
+        }
+
         public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
         {
             var res = await _binanceClient.Spot.Market.GetOrderBookAsync(symbol, limit);
