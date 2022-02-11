@@ -42,13 +42,27 @@ namespace Trade02.Infra.DAL
         {
             // await _binanceClient.General.GetDailySpotAccountSnapshotAsync();
             var response = await _binanceClient.Spot.Market.GetTickersAsync();
-            //var asas = await _binanceClient.Spot.Market.GetKlinesAsync();
 
             if (response.Success)
                 return response.Data.ToList();
             else
                 throw new Exception(response.Error.Message);
 
+        }
+
+        /// <summary>
+        /// Get do preço médio do símbolo de input
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public async Task<BinanceAveragePrice> GetAvgPrice(string symbol)
+        {
+            var response = await _binanceClient.Spot.Market.GetCurrentAvgPriceAsync(symbol); 
+
+            if (response.Success)
+                return response.Data;
+            else
+                throw new Exception(response.Error.Message);
         }
 
         /// <summary>

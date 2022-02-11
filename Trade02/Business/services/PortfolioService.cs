@@ -180,6 +180,7 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> opportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
         {
+            // não comprar de primeira, registrar o preço quando estrar e fazer mais duas rodadas pra ver se ele baixa
             var balance = await GetBalance("USDT");
             decimal totalUsdt = balance.Total;
 
@@ -236,6 +237,11 @@ namespace Trade02.Business.services
             }
 
             return new OrderResponse(openPositions, symbolsOwned, previousData);
+        }
+
+        public async Task<OrderResponse> ExecuteOrder()
+        {
+            return null;
         }
 
         /// <summary>
