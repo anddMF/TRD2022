@@ -9,13 +9,13 @@ namespace Trade02.Models.CrossCutting
     public class OrderResponse
     {
         public List<Position> Positions { get; set; }
-        public List<IBinanceTick> Previous { get; set; }
+        public List<string> Previous { get; set; }
         public List<string> OwnedSymbols { get; set; }
 
         public OrderResponse()
         { }
 
-        public OrderResponse(List<Position> positions, List<string> ownedSymbols, List<IBinanceTick> previous)
+        public OrderResponse(List<Position> positions, List<string> ownedSymbols, List<string> previous)
         {
             Positions = positions;
             OwnedSymbols = ownedSymbols;

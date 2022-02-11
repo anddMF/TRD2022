@@ -90,13 +90,13 @@ namespace Trade02
 
                             if (opportunities.Count > 1)
                             {
-                                var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, opportunities, currentMarket, previousData, minutesCounter);
+                                //var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, opportunities, currentMarket, previousData, minutesCounter);
 
-                                if (executedOrder != null)
-                                {
-                                    openPositions = executedOrder.Positions;
-                                    ownedSymbols = executedOrder.OwnedSymbols;
-                                }
+                                //if (executedOrder != null)
+                                //{
+                                //    openPositions = executedOrder.Positions;
+                                //    ownedSymbols = executedOrder.OwnedSymbols;
+                                //}
                             }
                             else
                             {

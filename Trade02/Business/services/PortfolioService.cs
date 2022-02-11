@@ -180,6 +180,7 @@ namespace Trade02.Business.services
         /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
         /// <param name="minute"></param>
         /// <returns></returns>
+        /*
         public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> opportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
         {
             // não comprar de primeira, registrar o preço quando estrar e fazer mais duas rodadas pra ver se ele baixa
@@ -239,18 +240,24 @@ namespace Trade02.Business.services
             }
 
             return new OrderResponse(openPositions, symbolsOwned, previousData);
-        }
+        } */
 
+        /// <summary>
+        /// Executa as ordens de compras que cumpram as condições necessárias para tal.
+        /// </summary>
+        /// <returns></returns>
         public async Task<OrderResponse> ExecuteOrder(List<string> symbols)
         {
+            // falta um controle para recomendações repetidas
             decimal quantity = await GetUSDTAmount();
             List<Position> openPositions = new List<Position>();
+            List<string> notBought = new List<string>();
+            List<string> bought = new List<string>();
             if (quantity == 0)
                 return null;
 
             // rodar X vezes no loop e ver se o preço está só baixando, se ele somente cair não é um bom sinal. Se não conseguir fazer a compra por estar somente caindo, cancela essa recomendação.
             decimal prevPrice = 0;
-            List<string> bought = new List<string>();
             for (int i = 0; i < symbols.Count; i++)
             {
                 string symbol = symbols[i];
@@ -272,6 +279,7 @@ namespace Trade02.Business.services
                         }
                         else
                         {
+                            _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
                             bought.Add(symbols[i]);
 
                             Position position = new Position(market, order.Price, order.Quantity);
@@ -288,10 +296,22 @@ namespace Trade02.Business.services
                 }
             }
 
-            // comparar as listas bought e symbols pra tratar as que nao foram compradas
-            return null;
+            if(bought.Count != symbols.Count)
+            {
+                var left = from sym in symbols
+                           where !bought.Any(x => x == sym)
+                           select sym;
+
+                notBought = left.ToList();
+            }
+
+            return new OrderResponse(openPositions, bought, notBought);
         }
 
+        /// <summary>
+        /// Get the amount of USDT that can be spent on an order.
+        /// </summary>
+        /// <returns></returns>
         public async Task<decimal> GetUSDTAmount()
         {
             var balance = await GetBalance("USDT");
