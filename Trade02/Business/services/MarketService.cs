@@ -166,11 +166,11 @@ namespace Trade02.Business.services
             return result;
         }
 
-        public async Task<List<IBinanceTick>> CheckOppotunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes)
+        public async Task<OpportunitiesResponse> CheckOppotunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes)
         {
-            List<IBinanceTick> prevResponse = new List<IBinanceTick>();
-            List<IBinanceTick> response = new List<IBinanceTick>();
-            List<IBinanceTick> response3 = new List<IBinanceTick>();
+            List<IBinanceTick> daysList = new List<IBinanceTick>();
+            List<IBinanceTick> hoursList = new List<IBinanceTick>();
+            List<IBinanceTick> minutesList = new List<IBinanceTick>();
 
             // o filtro do dia pega so de ontem, entao a moeda pode estar em queda hoje que ele nao vai pegar
             if (days)
@@ -181,7 +181,7 @@ namespace Trade02.Business.services
                     bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneDay, daysToAnalyze);
 
                     if (opportunity)
-                        prevResponse.Add(current);
+                        daysList.Add(current);
                 }
             }
 
@@ -194,7 +194,7 @@ namespace Trade02.Business.services
                     bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneHour, 3);
 
                     if (opportunity)
-                        response.Add(current);
+                        hoursList.Add(current);
                 }
             }
 
@@ -207,11 +207,11 @@ namespace Trade02.Business.services
                     bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.FifteenMinutes, 3);
 
                     if (opportunity)
-                        response3.Add(current);
+                        minutesList.Add(current);
                 }
             }
 
-            return response;
+            return new OpportunitiesResponse(daysList, hoursList, minutesList);
         }
 
         public async Task<bool> IsAKlineOpportunitie(string symbol, KlineInterval interval, int period)
