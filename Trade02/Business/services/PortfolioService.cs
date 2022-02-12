@@ -242,11 +242,21 @@ namespace Trade02.Business.services
             return new OrderResponse(openPositions, symbolsOwned, previousData);
         } */
 
+        //public async Task<bool> ManagePosition(OpportunitiesResponse opp)
+        //{
+        //    // se ainda esta nas listas de opp, quer dizer que não foram compradas
+        //    if (opp.Days.Count > 0)
+        //    {
+        //        // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+        //        var res
+        //    }
+        //}
+
         /// <summary>
         /// Executa as ordens de compras que cumpram as condições necessárias para tal.
         /// </summary>
         /// <returns></returns>
-        public async Task<OrderResponse> ExecuteOrder(List<string> symbols)
+        public async Task<OrderResponse> ExecuteMulitpleOrder(List<string> symbols)
         {
             // falta um controle para recomendações repetidas
             decimal quantity = await GetUSDTAmount();
@@ -270,7 +280,6 @@ namespace Trade02.Business.services
 
                     if (j > 0 && price > prevPrice)
                     {
-                        // faz a compra
                         var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
                         if (order == null)
                         {
@@ -286,9 +295,8 @@ namespace Trade02.Business.services
                             openPositions.Add(position);
 
                             ReportLog.WriteReport(logType.COMPRA, position);
+                            j = 10;
                         }
-                        
-                        j = 10;
                     }
 
                     prevPrice = price;
@@ -296,7 +304,7 @@ namespace Trade02.Business.services
                 }
             }
 
-            if(bought.Count != symbols.Count)
+            if (bought.Count != symbols.Count)
             {
                 var left = from sym in symbols
                            where !bought.Any(x => x == sym)
@@ -309,12 +317,61 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
+        /// Executa uma ordem de compra que cumpra as condições necessárias para tal.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<Position> ExecuteSimpleOrder(string symbol)
+        {
+            decimal quantity = await GetUSDTAmount();
+            if (quantity == 0)
+                return null;
+
+            Position position = new Position();
+
+            decimal prevPrice = 0;
+            int j = 0;
+
+            while (j < 5)
+            {
+                var market = await _clientSvc.GetTicker(symbol);
+                decimal price = market.AskPrice;
+
+                if (j > 0 && price > prevPrice)
+                {
+                    var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
+                    if (order == null)
+                    {
+                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
+                        position = new Position(market, order.Price, order.Quantity);
+
+                        ReportLog.WriteReport(logType.COMPRA, position);
+                        j = 10;
+                    }
+                }
+
+                prevPrice = price;
+                j++;
+            }
+
+            return position.Data != null ? position : null;
+        }
+
+        /// <summary>
         /// Get the amount of USDT that can be spent on an order.
         /// </summary>
         /// <returns></returns>
         public async Task<decimal> GetUSDTAmount()
         {
             var balance = await GetBalance("USDT");
+
+            if (balance == null)
+                return 0;
+
             decimal totalUsdt = balance.Total;
 
             // teto de gastos
@@ -332,9 +389,7 @@ namespace Trade02.Business.services
                 return 0;
             }
 
-            quantity = Math.Max(quantity, supportQuantity);
-
-            return quantity;
+            return Math.Max(quantity, supportQuantity);
         }
 
         /// <summary>

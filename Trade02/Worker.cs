@@ -79,8 +79,7 @@ namespace Trade02
                         Console.WriteLine("----------------- Monitoramento ------------------");
                         minutesCounter++;
 
-                        // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. Problema é a lista previousData
-                        // que seria perdida em outra camada
+                        // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. 
                         currentMarket = await _marketSvc.MonitorTopPercentages(previousData);
 
                         // retorna com os dados da previousData com tendencia de subida
