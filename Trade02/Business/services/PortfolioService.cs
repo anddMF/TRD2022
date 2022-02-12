@@ -155,22 +155,12 @@ namespace Trade02.Business.services
             }
         }
 
-        public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
-        {
-            try
-            {
-                var res = await _clientSvc.GetOrderBook(symbol, limit);
-
-                return res;
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
-                return null;
-            }
-        }
-
+        /// <summary>
+        /// Executa a venda a partir de um motor de decisão.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="quantity"></param>
+        /// <returns></returns>
         public async Task<BinancePlacedOrder> ExecuteSellOrder(string symbol, decimal quantity)
         {
             Console.WriteLine("#### Entrou VENDA");
@@ -179,7 +169,7 @@ namespace Trade02.Business.services
 
             while (j < 5)
             {
-                await Task.Delay(3000);
+                await Task.Delay(2000);
                 var market = await _clientSvc.GetTicker(symbol);
                 decimal price = market.AskPrice;
                 Console.WriteLine($"Preco {symbol}: {price}");
@@ -204,10 +194,17 @@ namespace Trade02.Business.services
                 return final;
 
             return null;
-
         }
-        public async Task<bool> ManagePosition(OpportunitiesResponse opp, List<Position> positions)
+
+        /// <summary>
+        /// Motor de manipulação das posições em aberto e recomendadas. A partir de certas condições, determina o sell ou hold da posição.
+        /// </summary>
+        /// <param name="opp">oportunidades de compra</param>
+        /// <param name="positions">posições que já estão em aberto</param>
+        /// <returns></returns>
+        public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions)
         {
+            List<Position> toMonitor = new List<Position>();
             // manage das posicoes em aberto
             for(int i = 0; i < positions.Count; i++)
             {
@@ -216,39 +213,47 @@ namespace Trade02.Business.services
 
                 decimal currentValorization = currentPrice - positions[i].LastPrice;
 
+                bool stop = false;
+
                 positions[i].LastPrice = currentPrice;
-                // pego o preço atual da moeda
-                // currentValorization comparado com o lastTotalValorization
-                // if lastTotalValorization > 1 then currentValorization nao pode ser < x
+
                 if (currentValorization < 0)
                 {
-                    if (positions[i].Valorization >= 1)
+                    var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
+                    if (responseSell != null)
                     {
-                        if (currentValorization <= (decimal)0.4)
-                        {
-                            // executeSellOrder
-                            var order = await ExecuteSellOrder(positions[i].Data.Symbol, positions[i].Quantity);
-                            _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {positions[i].Data.Symbol}, total valorization: {positions[i].Valorization}, current price: {order.Price}, initial: {positions[i].InitialPrice}");
-                            // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
-                            //position = new Position(market, order.Price, order.Quantity);
-
-                            ReportLog.WriteReport(logType.VENDA, positions[i]);
-                        }
-                    } else if (currentValorization + positions[i].Valorization <= positions[i].Risk)
-                    {
-                        // executeSellOrder
-                        var order = await ExecuteSellOrder(positions[i].Data.Symbol, positions[i].Quantity);
-                        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {positions[i].Data.Symbol}, total valorization: {positions[i].Valorization}, current price: {order.Price}, initial: {positions[i].InitialPrice}");
-                        // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
-                        //position = new Position(market, order.Price, order.Quantity);
-
-                        ReportLog.WriteReport(logType.VENDA, positions[i]);
+                        // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
+                        //positions[i] = responseSell;
+                        toMonitor.Add(responseSell);
                     }
 
                 } else
                 {
-                    // se essa moeda tiver renovando maximas acima de 0.7%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
-                    // while
+                    // se essa moeda tiver renovando maximas acima de 0.6%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
+
+                    while (!stop)
+                    {
+                        await Task.Delay(2000);
+                        market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
+                        currentPrice = market.AskPrice;
+                        currentValorization = currentPrice - positions[i].LastPrice;
+
+                        if(currentValorization <= (decimal)0.6)
+                        {
+                            stop = true;
+                            var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
+
+                            if(responseSell != null)
+                            {
+                                // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
+                                //positions[i] = responseSell;
+                                toMonitor.Add(responseSell);
+                            }
+                        } else
+                        {
+                            positions[i].LastPrice = currentPrice;
+                        }
+                    }
                 }
 
                 positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
@@ -290,6 +295,54 @@ namespace Trade02.Business.services
                     opp.Hours.Clear();
                 }
             }
+
+            return new ManagerResponse(opp, positions, toMonitor);
+        }
+
+        /// <summary>
+        /// Faz a validação se vale ou não a pena vender o ativo, caso sim, determina o momento a partir de certas validações e executa.
+        /// </summary>
+        /// <param name="position">posição que será validada</param>
+        /// <param name="currentValorization">variação atual</param>
+        /// <param name="market">dados atuais de mercado da posição</param>
+        /// <returns></returns>
+        public async Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market)
+        {
+            if (position.Valorization >= 1)
+            {
+                if (currentValorization <= (decimal)0.4)
+                {
+                    // executeSellOrder
+                    var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                    if(order != null)
+                    {
+                        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                        // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                        position = new Position(market, order.Price, order.Quantity);
+
+                        ReportLog.WriteReport(logType.VENDA, position);
+                        return position;
+                    }
+                    return null;
+                }
+            }
+            else if (currentValorization + position.Valorization <= position.Risk)
+            {
+                // executeSellOrder
+                var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                if(order != null)
+                {
+                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                    position = new Position(market, order.Price, order.Quantity);
+
+                    ReportLog.WriteReport(logType.VENDA, position);
+                    return position;
+                }
+                return null;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -471,6 +524,22 @@ namespace Trade02.Business.services
                 return null;
             }
 
+        }
+
+        public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
+        {
+            try
+            {
+                var res = await _clientSvc.GetOrderBook(symbol, limit);
+
+                return res;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>

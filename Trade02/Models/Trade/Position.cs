@@ -35,6 +35,7 @@ namespace Trade02.Models.Trade
             LastPrice = orderPrice;
             LastValue = InitialValue;
             Minutes = 1;
+            Risk = -10;
         }
 
     }
