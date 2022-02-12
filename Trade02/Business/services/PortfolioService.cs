@@ -171,86 +171,102 @@ namespace Trade02.Business.services
             }
         }
 
-        /// <summary>
-        /// Executa as ordens de compras que cumpram as condições necessárias para tal.
-        /// </summary>
-        /// <param name="openPositions">posições em aberto pelo robô</param>
-        /// <param name="symbolsOwned"></param>
-        /// <param name="opportunities">dados previous de moedas que valorizaram positivamente</param>
-        /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
-        /// <param name="minute"></param>
-        /// <returns></returns>
-        /*
-        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> opportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
+        public async Task<BinancePlacedOrder> ExecuteSellOrder(string symbol, decimal quantity)
         {
-            // não comprar de primeira, registrar o preço quando estrar e fazer mais duas rodadas pra ver se ele baixa
-            var balance = await GetBalance("USDT");
-            decimal totalUsdt = balance.Total;
+            Console.WriteLine("#### Entrou VENDA");
+            decimal prevPrice = 0;
+            int j = 0;
 
-            // teto de gastos
-            totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
-
-            // formula para se fazer compras de no minimo 15 usdt
-            decimal quantity = totalUsdt / maxOpenPositions;
-            decimal support = totalUsdt / minUSDT;
-            decimal supportQuantity = totalUsdt / support;
-
-            if (quantity < minUSDT && supportQuantity < minUSDT)
+            while (j < 5)
             {
-                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### SALDO USDT INSUFICIENTE PARA COMPRAS ####\n\t#### Posicoes em aberto: {openPositions.Count} ####\n\t#### #### #### #### #### #### ####");
+                await Task.Delay(3000);
+                var market = await _clientSvc.GetTicker(symbol);
+                decimal price = market.AskPrice;
+                Console.WriteLine($"Preco {symbol}: {price}");
 
-                return null;
-            }
-
-            quantity = Math.Max(quantity, supportQuantity);
-
-            for (int i = 0; i < opportunities.Count; i++)
-            {
-                if (openPositions.Count < maxOpenPositions)
+                if (j > 0 && price > prevPrice)
                 {
-                    var current = currentMarket.Find(x => x.Symbol == opportunities[i].Symbol);
-
-                    var percentageChange = current.PriceChangePercent - opportunities[i].PriceChangePercent;
-                    _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {opportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {percentageChange}, price: {opportunities[i].AskPrice}");
-
-                    // executa a compra
-                    var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
+                    var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
                     if (order == null)
-                    {
-                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {current.Symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
-                    }
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
                     else
-                    {
-                        // adicionar mais validações pois o quantity pode não ter sido 100% filled
-
-                        symbolsOwned.Add(current.Symbol);
-                        Position position = new Position(current, order.Price, order.Quantity);
-                        openPositions.Add(position);
-                        previousData.RemoveAll(x => x.Symbol == opportunities[i].Symbol);
-
-                        ReportLog.WriteReport(logType.COMPRA, position);
-                    }
-                }
-                else
-                {
-                    return new OrderResponse(openPositions, symbolsOwned, previousData);
+                        return order;
                 }
 
+                prevPrice = price;
+                j++;
             }
 
-            return new OrderResponse(openPositions, symbolsOwned, previousData);
-        } */
+            var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
+            if (final == null)
+                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+            else
+                return final;
 
-        //public async Task<bool> ManagePosition(OpportunitiesResponse opp)
-        //{
-        //    // se ainda esta nas listas de opp, quer dizer que não foram compradas
-        //    if (opp.Days.Count > 0)
-        //    {
-        //        // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-        //        var res
-        //    }
-        //}
+            return null;
+
+        }
+        public async Task<bool> ManagePosition(OpportunitiesResponse opp, List<Position> positions)
+        {
+            /*
+            // manage das posicoes em aberto
+            for(int i = 0; i < positions.Count; i++)
+            {
+                // se essa moeda tiver renovando maximas acima de 0.7%, ficar nela até parar de renovar para poder pegar um lucro bom
+                decimal currentValorization = currentPrice - lastPrice;
+                // pego o preço atual da moeda
+                // currentValorization comparado com o lastTotalValorization
+                // if lastTotalValorization > 1 then currentValorization nao pode ser < x
+                if(lastTotalValorization >= 1)
+                {
+                    if(currentValorization <= (decimal)0.5)
+                    {
+                        // executeSellOrder
+
+                        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {positions[i].Data.Symbol}, total valorization: {positions[i].Valorization}, current price: {order.Price}, initial: {positions[i].InitialPrice}");
+                        // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                        //position = new Position(market, order.Price, order.Quantity);
+
+                        ReportLog.WriteReport(logType.COMPRA, positions[i]);
+                        j = 10;
+                    }
+                }
+            } */
+
+            // se ainda esta nas listas de opp, quer dizer que não foram compradas 
+            if (opp.Minutes.Count > 0)
+            {
+                // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+                var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol);
+                if (res != null)
+                {
+                    positions.Add(res);
+                    opp.Minutes.Clear();
+                }
+            }
+
+            if (opp.Days.Count > 0)
+            {
+                // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+                var res = await ExecuteSimpleOrder(opp.Days[0].Symbol);
+                if(res != null)
+                {
+                    positions.Add(res);
+                    opp.Days.Clear();
+                }
+            } 
+
+            if (opp.Hours.Count > 0)
+            {
+                // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+                var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol);
+                if(res != null)
+                {
+                    positions.Add(res);
+                    opp.Hours.Clear();
+                }
+            }
+        }
 
         /// <summary>
         /// Executa as ordens de compras que cumpram as condições necessárias para tal.
@@ -432,5 +448,76 @@ namespace Trade02.Business.services
             }
 
         }
+
+        /// <summary>
+        /// Executa as ordens de compras que cumpram as condições necessárias para tal.
+        /// </summary>
+        /// <param name="openPositions">posições em aberto pelo robô</param>
+        /// <param name="symbolsOwned"></param>
+        /// <param name="opportunities">dados previous de moedas que valorizaram positivamente</param>
+        /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
+        /// <param name="minute"></param>
+        /// <returns></returns>
+        /*
+        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> opportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
+        {
+            // não comprar de primeira, registrar o preço quando estrar e fazer mais duas rodadas pra ver se ele baixa
+            var balance = await GetBalance("USDT");
+            decimal totalUsdt = balance.Total;
+
+            // teto de gastos
+            totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
+
+            // formula para se fazer compras de no minimo 15 usdt
+            decimal quantity = totalUsdt / maxOpenPositions;
+            decimal support = totalUsdt / minUSDT;
+            decimal supportQuantity = totalUsdt / support;
+
+            if (quantity < minUSDT && supportQuantity < minUSDT)
+            {
+                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### SALDO USDT INSUFICIENTE PARA COMPRAS ####\n\t#### Posicoes em aberto: {openPositions.Count} ####\n\t#### #### #### #### #### #### ####");
+
+                return null;
+            }
+
+            quantity = Math.Max(quantity, supportQuantity);
+
+            for (int i = 0; i < opportunities.Count; i++)
+            {
+                if (openPositions.Count < maxOpenPositions)
+                {
+                    var current = currentMarket.Find(x => x.Symbol == opportunities[i].Symbol);
+
+                    var percentageChange = current.PriceChangePercent - opportunities[i].PriceChangePercent;
+                    _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {opportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {percentageChange}, price: {opportunities[i].AskPrice}");
+
+                    // executa a compra
+                    var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
+                    if (order == null)
+                    {
+                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {current.Symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                    }
+                    else
+                    {
+                        // adicionar mais validações pois o quantity pode não ter sido 100% filled
+
+                        symbolsOwned.Add(current.Symbol);
+                        Position position = new Position(current, order.Price, order.Quantity);
+                        openPositions.Add(position);
+                        previousData.RemoveAll(x => x.Symbol == opportunities[i].Symbol);
+
+                        ReportLog.WriteReport(logType.COMPRA, position);
+                    }
+                }
+                else
+                {
+                    return new OrderResponse(openPositions, symbolsOwned, previousData);
+                }
+
+            }
+
+            return new OrderResponse(openPositions, symbolsOwned, previousData);
+        } */
     }
 }
