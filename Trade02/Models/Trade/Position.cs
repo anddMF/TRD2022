@@ -19,6 +19,7 @@ namespace Trade02.Models.Trade
         public decimal LastPrice { get; set; }
         public decimal Quantity { get; set; }
         public int Minutes { get; set; }
+        public decimal Risk { get; set; }
 
         public Position()
         { }

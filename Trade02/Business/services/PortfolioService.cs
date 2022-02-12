@@ -208,30 +208,51 @@ namespace Trade02.Business.services
         }
         public async Task<bool> ManagePosition(OpportunitiesResponse opp, List<Position> positions)
         {
-            /*
             // manage das posicoes em aberto
             for(int i = 0; i < positions.Count; i++)
             {
-                // se essa moeda tiver renovando maximas acima de 0.7%, ficar nela até parar de renovar para poder pegar um lucro bom
-                decimal currentValorization = currentPrice - lastPrice;
+                var market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
+                decimal currentPrice = market.AskPrice;
+
+                decimal currentValorization = currentPrice - positions[i].LastPrice;
+
+                positions[i].LastPrice = currentPrice;
                 // pego o preço atual da moeda
                 // currentValorization comparado com o lastTotalValorization
                 // if lastTotalValorization > 1 then currentValorization nao pode ser < x
-                if(lastTotalValorization >= 1)
+                if (currentValorization < 0)
                 {
-                    if(currentValorization <= (decimal)0.5)
+                    if (positions[i].Valorization >= 1)
+                    {
+                        if (currentValorization <= (decimal)0.4)
+                        {
+                            // executeSellOrder
+                            var order = await ExecuteSellOrder(positions[i].Data.Symbol, positions[i].Quantity);
+                            _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {positions[i].Data.Symbol}, total valorization: {positions[i].Valorization}, current price: {order.Price}, initial: {positions[i].InitialPrice}");
+                            // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                            //position = new Position(market, order.Price, order.Quantity);
+
+                            ReportLog.WriteReport(logType.VENDA, positions[i]);
+                        }
+                    } else if (currentValorization + positions[i].Valorization <= positions[i].Risk)
                     {
                         // executeSellOrder
-
+                        var order = await ExecuteSellOrder(positions[i].Data.Symbol, positions[i].Quantity);
                         _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {positions[i].Data.Symbol}, total valorization: {positions[i].Valorization}, current price: {order.Price}, initial: {positions[i].InitialPrice}");
                         // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                         //position = new Position(market, order.Price, order.Quantity);
 
-                        ReportLog.WriteReport(logType.COMPRA, positions[i]);
-                        j = 10;
+                        ReportLog.WriteReport(logType.VENDA, positions[i]);
                     }
+
+                } else
+                {
+                    // se essa moeda tiver renovando maximas acima de 0.7%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
+                    // while
                 }
-            } */
+
+                positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
+            }
 
             // se ainda esta nas listas de opp, quer dizer que não foram compradas 
             if (opp.Minutes.Count > 0)
@@ -240,6 +261,7 @@ namespace Trade02.Business.services
                 var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol);
                 if (res != null)
                 {
+                    res.Risk = -3;
                     positions.Add(res);
                     opp.Minutes.Clear();
                 }
@@ -251,6 +273,7 @@ namespace Trade02.Business.services
                 var res = await ExecuteSimpleOrder(opp.Days[0].Symbol);
                 if(res != null)
                 {
+                    res.Risk = -7;
                     positions.Add(res);
                     opp.Days.Clear();
                 }
@@ -262,6 +285,7 @@ namespace Trade02.Business.services
                 var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol);
                 if(res != null)
                 {
+                    res.Risk = -11;
                     positions.Add(res);
                     opp.Hours.Clear();
                 }
