@@ -267,6 +267,7 @@ namespace Trade02.Business.services
                 if (res != null)
                 {
                     res.Risk = -3;
+                    res.Type = RecommendationType.Minute;
                     positions.Add(res);
                     opp.Minutes.Clear();
                 }
@@ -279,6 +280,7 @@ namespace Trade02.Business.services
                 if(res != null)
                 {
                     res.Risk = -7;
+                    res.Type = RecommendationType.Day;
                     positions.Add(res);
                     opp.Days.Clear();
                 }
@@ -291,6 +293,7 @@ namespace Trade02.Business.services
                 if(res != null)
                 {
                     res.Risk = -11;
+                    res.Type = RecommendationType.Hour;
                     positions.Add(res);
                     opp.Hours.Clear();
                 }
@@ -413,7 +416,7 @@ namespace Trade02.Business.services
         /// Executa uma ordem de compra que cumpra as condições necessárias para tal.
         /// </summary>
         /// <returns></returns>
-        public async Task<Position> ExecuteSimpleOrder(string symbol)
+        public async Task<Position> ExecuteSimpleOrder(string symbol, decimal minPrice = decimal.MinValue)
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)

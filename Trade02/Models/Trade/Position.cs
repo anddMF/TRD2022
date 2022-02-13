@@ -20,6 +20,7 @@ namespace Trade02.Models.Trade
         public decimal Quantity { get; set; }
         public int Minutes { get; set; }
         public decimal Risk { get; set; }
+        public RecommendationType Type { get; set; }
 
         public Position()
         { }
@@ -36,7 +37,15 @@ namespace Trade02.Models.Trade
             LastValue = InitialValue;
             Minutes = 1;
             Risk = -10;
+            Type = RecommendationType.Day;
         }
 
+    }
+
+    public enum RecommendationType
+    {
+        Day = 0,
+        Hour = 1,
+        Minute = 2
     }
 }

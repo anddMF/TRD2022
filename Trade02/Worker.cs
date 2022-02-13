@@ -49,12 +49,15 @@ namespace Trade02
 
                 List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
-                int minutesCounter = 0;
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                var ssss = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
+                var opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
+                bool days = !(opp.Days.Count > 1);
+                bool hours = !(opp.Hours.Count > 1);
+                bool minutes = !(opp.Minutes.Count > 1);
+
                 previousData = currentMarket;
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
@@ -63,64 +66,34 @@ namespace Trade02
                 while (runner)
                 {
                     await Task.Delay(20000, stoppingToken);
+                    Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}\n");
 
-                    Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}");
-                    // Manipula as operacoes em aberto
-                    if (openPositions.Count > 0)
+                    // manage positions recebendo as recoendações e operações em aperto
+                    var manager = await _portfolioSvc.ManagePosition(opp, openPositions);
+
+                    
+                    openPositions = manager.OpenPositions;
+
+                    // TODO: na lista de toMonitor preciso considerar qual o type que tem lá e não fazer compras pois ainda está obervando aquele type
+                    // caso ainda tenha recomendação não executada, chama opp by klines com as que faltam
+                    foreach (Position pos in openPositions)
                     {
-                        PortfolioResponse res = await _portfolioSvc.ManageOpenPositions(openPositions, previousData);
-                        openPositions = res.OpenPositions;
-                        previousData = res.MonitorData;
+                        if (pos.Type == RecommendationType.Day)
+                            days = false;
+
+                        if (pos.Type == RecommendationType.Hour)
+                            hours = false;
+
+                        if (pos.Type == RecommendationType.Minute)
+                            minutes = false;
                     }
+                    //opp = manager.Opportunities;
+                    //toMonitor = manager.ToMonitor
 
-
-                    if (openPositions.Count < maxOpenPositions)
-                    {
-                        Console.WriteLine("----------------- Monitoramento ------------------");
-                        minutesCounter++;
-
-                        // toda essa responsabilidade de filtrar oportunidades, deve ficar em outra camada. 
-                        currentMarket = await _marketSvc.MonitorTopPercentages(previousData);
-
-                        // retorna com os dados da previousData com tendencia de subida
-                        if (minutesCounter > 1)
-                        {
-                            List<IBinanceTick> opportunities = _marketSvc.CheckOpportunities(currentMarket, previousData);
-
-                            if (opportunities.Count > 1)
-                            {
-                                //var executedOrder = await _portfolioSvc.ExecuteOrder(openPositions, ownedSymbols, opportunities, currentMarket, previousData, minutesCounter);
-
-                                //if (executedOrder != null)
-                                //{
-                                //    openPositions = executedOrder.Positions;
-                                //    ownedSymbols = executedOrder.OwnedSymbols;
-                                //}
-                            }
-                            else
-                            {
-                                _logger.LogWarning($"SEM OPORTUNIDADES {DateTime.Now}");
-                            }
-                        }
-
-                        // X minutos para renovar os dados base da previousData
-                        if (minutesCounter == 60)
-                        {
-                            minutesCounter = 0;
-                            currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                            Console.WriteLine("----------------- Renovada lista de monitoramento");
-
-                            previousData = currentMarket;
-                        }
-                    }
+                    if(days && hours && minutes) 
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n"); 
                     else
-                    {
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####");
-                        currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-
-                        previousData = currentMarket;
-                    }
-
+                        opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
                 }
 
             }

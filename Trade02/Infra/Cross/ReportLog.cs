@@ -50,8 +50,8 @@ namespace Trade02.Infra.Cross
         {
             using (StreamWriter sw = File.CreateText(filepath))
             {
-                sw.WriteLine($"DATE;TYPE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;");
-                sw.WriteLine($"{DateTime.Now};[{typeLog}]; {position.Data.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization};");
+                sw.WriteLine($"DATE;TYPE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;REC TYPE;");
+                sw.WriteLine($"{DateTime.Now};[{typeLog}]; {position.Data.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Type};");
             }
         }
 
