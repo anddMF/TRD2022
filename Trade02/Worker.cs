@@ -47,7 +47,6 @@ namespace Trade02
             {
                 bool runner = true;
 
-                List<IBinanceTick> previousData = new List<IBinanceTick>();
                 List<Position> openPositions = new List<Position>();
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
@@ -58,14 +57,12 @@ namespace Trade02
                 bool hours = !(opp.Hours.Count > 1);
                 bool minutes = !(opp.Minutes.Count > 1);
 
-                previousData = currentMarket;
-
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
                 Console.WriteLine();
 
                 while (runner)
                 {
-                    await Task.Delay(20000, stoppingToken);
+                    
                     Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}\n");
 
                     // manage positions recebendo as recoendações e operações em aperto
@@ -90,7 +87,10 @@ namespace Trade02
                     //opp = manager.Opportunities;
                     //toMonitor = manager.ToMonitor
 
-                    if(days && hours && minutes) 
+                    // colocado aqui para não ter o delay entre a recomendação e o manaPosition
+                    await Task.Delay(20000, stoppingToken);
+
+                    if (!days && !hours && !minutes) 
                         _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n"); 
                     else
                         opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
