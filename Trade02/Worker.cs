@@ -47,22 +47,26 @@ namespace Trade02
             {
                 bool runner = true;
 
+                bool days = true;
+                bool hours = true;
+                bool minutes = true;
+
                 List<Position> openPositions = new List<Position>();
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
                 var opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
-                bool days = !(opp.Days.Count > 1);
-                bool hours = !(opp.Hours.Count > 1);
-                bool minutes = !(opp.Minutes.Count > 1);
+                
 
                 Console.WriteLine("----------------- Lista incial capturada ------------------");
                 Console.WriteLine();
 
                 while (runner)
                 {
-                    
+                    days = true;
+                    hours = true;
+                    minutes = true;
                     Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}\n");
 
                     // manage positions recebendo as recoendações e operações em aperto

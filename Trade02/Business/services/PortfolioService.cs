@@ -319,7 +319,7 @@ namespace Trade02.Business.services
             if (opp.Hours.Count > 0)
             {
                 // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                for (int i = 0; i < opp.Days.Count; i++)
+                for (int i = 0; i < opp.Hours.Count; i++)
                 {
                     var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol);
                     if (res != null)
