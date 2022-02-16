@@ -229,7 +229,7 @@ namespace Trade02.Business.services
                 var market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
                 decimal currentPrice = market.AskPrice;
 
-                decimal currentValorization = currentPrice - positions[i].LastPrice;
+                decimal currentValorization = ((currentPrice - positions[i].LastPrice)/ positions[i].LastPrice) * 100;
 
                 bool stop = false;
 
@@ -243,6 +243,7 @@ namespace Trade02.Business.services
                         // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                         //positions[i] = responseSell;
                         toMonitor.Add(responseSell);
+                        positions.RemoveAll(x => x.Data.Symbol == responseSell.Data.Symbol);
                     }
 
                 }
@@ -255,7 +256,7 @@ namespace Trade02.Business.services
                         await Task.Delay(2000);
                         market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
                         currentPrice = market.AskPrice;
-                        currentValorization = currentPrice - positions[i].LastPrice;
+                        currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
 
                         if (currentValorization <= (decimal)0.6)
                         {
@@ -267,6 +268,7 @@ namespace Trade02.Business.services
                                 // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                                 //positions[i] = responseSell;
                                 toMonitor.Add(responseSell);
+                                positions.RemoveAll(x => x.Data.Symbol == responseSell.Data.Symbol);
                             }
                         }
                         else
@@ -283,7 +285,7 @@ namespace Trade02.Business.services
             if (opp.Minutes.Count > 0)
             {
                 // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                for (int i = 0; i < opp.Days.Count; i++)
+                for (int i = 0; i < opp.Minutes.Count; i++)
                 {
                     var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol);
                     if (res != null)
@@ -292,7 +294,7 @@ namespace Trade02.Business.services
                         res.Type = RecommendationType.Minute;
                         positions.Add(res);
                         opp.Minutes.Clear();
-                        i = opp.Days.Count;
+                        i = opp.Minutes.Count;
                     }
                 }
             }
@@ -328,7 +330,7 @@ namespace Trade02.Business.services
                         res.Type = RecommendationType.Hour;
                         positions.Add(res);
                         opp.Hours.Clear();
-                        i = opp.Days.Count;
+                        i = opp.Hours.Count;
                     }
                 }
             }
@@ -355,9 +357,12 @@ namespace Trade02.Business.services
                     {
                         _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                         // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                        position.LastPrice = order.Price;
+                        position.LastValue = position.Quantity * order.Price;
+                        position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                        ReportLog.WriteReport(logType.VENDA, position);
                         position = new Position(market, order.Price, order.Quantity);
 
-                        ReportLog.WriteReport(logType.VENDA, position);
                         return position;
                     }
                     return null;
@@ -371,9 +376,12 @@ namespace Trade02.Business.services
                 {
                     _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                    position.LastPrice = order.Price;
+                    position.LastValue = position.Quantity * order.Price;
+                    position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                    ReportLog.WriteReport(logType.VENDA, position);
                     position = new Position(market, order.Price, order.Quantity);
 
-                    ReportLog.WriteReport(logType.VENDA, position);
                     return position;
                 }
                 return null;
