@@ -178,12 +178,12 @@ namespace Trade02.Business.services
                 {
                     Console.WriteLine("\n Caiu venda SUBINDO\n");
                     // debug comm
-                    //var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
+                    var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
                     //debug rem
-                    var order = new BinancePlacedOrder();
-                    order.Price = market.AskPrice;
-                    order.Quantity = quantity;
+                    //var order = new BinancePlacedOrder();
+                    //order.Price = market.AskPrice;
+                    //order.Quantity = quantity;
                     //
 
                     if (order == null)
@@ -198,13 +198,13 @@ namespace Trade02.Business.services
 
             Console.WriteLine("\n Caiu venda FINAL\n");
             // debug comm
-            //var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
+            var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
             //debug rem
-            var mark = await _clientSvc.GetTicker(symbol);
-            var final = new BinancePlacedOrder();
-            final.Price = mark.AskPrice;
-            final.Quantity = quantity;
+            //var mark = await _clientSvc.GetTicker(symbol);
+            //var final = new BinancePlacedOrder();
+            //final.Price = mark.AskPrice;
+            //final.Quantity = quantity;
             //
             if (final == null)
                 _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
@@ -223,119 +223,135 @@ namespace Trade02.Business.services
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions)
         {
             List<Position> toMonitor = new List<Position>();
+            int stopCounter = 0;
             // manage das posicoes em aberto
-            for (int i = 0; i < positions.Count; i++)
+            try
             {
-                var market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
-                decimal currentPrice = market.AskPrice;
 
-                decimal currentValorization = ((currentPrice - positions[i].LastPrice)/ positions[i].LastPrice) * 100;
 
-                bool stop = false;
-
-                positions[i].LastPrice = currentPrice;
-
-                if (currentValorization < 0)
+                for (int i = 0; i < positions.Count; i++)
                 {
-                    var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
-                    if (responseSell != null)
+                    var market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
+                    decimal currentPrice = market.AskPrice;
+
+                    decimal currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
+
+                    bool stop = false;
+
+                    positions[i].LastPrice = currentPrice;
+                    Console.WriteLine($"\nMANAGE: ticker {positions[i].Data.Symbol}; current val {currentValorization}; last val {positions[i].Valorization}\n");
+                    if (currentValorization < 0)
                     {
-                        // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
-                        //positions[i] = responseSell;
-                        toMonitor.Add(responseSell);
-                        positions.RemoveAll(x => x.Data.Symbol == responseSell.Data.Symbol);
-                    }
-
-                }
-                else
-                {
-                    // se essa moeda tiver renovando maximas acima de 0.6%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
-
-                    while (!stop)
-                    {
-                        await Task.Delay(2000);
-                        market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
-                        currentPrice = market.AskPrice;
-                        currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
-
-                        if (currentValorization <= (decimal)0.6)
+                        var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
+                        if (responseSell != null)
                         {
-                            stop = true;
-                            var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
+                            // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
+                            //positions[i] = responseSell;
+                            toMonitor.Add(responseSell);
+                        }
 
-                            if (responseSell != null)
+                    }
+                    else
+                    {
+                        // se essa moeda tiver renovando maximas acima de 0.6%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
+
+                        while (!stop)
+                        {
+                            await Task.Delay(2000);
+                            market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
+                            currentPrice = market.AskPrice;
+                            currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
+
+                            if (currentValorization >= (decimal)0.6)
                             {
-                                // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
-                                //positions[i] = responseSell;
-                                toMonitor.Add(responseSell);
-                                positions.RemoveAll(x => x.Data.Symbol == responseSell.Data.Symbol);
+                                Console.WriteLine("Current valorization");
+                                stop = true;
+                                var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
+
+                                if (responseSell != null)
+                                {
+                                    // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
+                                    //positions[i] = responseSell;
+                                    toMonitor.Add(responseSell);
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("else do current valorization");
+                                positions[i].LastPrice = currentPrice;
+                                stopCounter++;
+                                if (stopCounter >= 3)
+                                    stop = true;
                             }
                         }
-                        else
+                    }
+
+                    positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
+                }
+
+                foreach(var obj in toMonitor)
+                    positions.RemoveAll(x => x.Data.Symbol == obj.Data.Symbol);
+
+                // se ainda esta nas listas de opp, quer dizer que não foram compradas 
+                if (opp.Minutes.Count > 0)
+                {
+                    // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+                    for (int i = 0; i < opp.Minutes.Count; i++)
+                    {
+                        var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol);
+                        if (res != null)
                         {
-                            positions[i].LastPrice = currentPrice;
+                            res.Risk = -3;
+                            res.Type = RecommendationType.Minute;
+                            positions.Add(res);
+                            opp.Minutes.Clear();
+                            i = opp.Minutes.Count;
                         }
                     }
                 }
 
-                positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
-            }
-
-            // se ainda esta nas listas de opp, quer dizer que não foram compradas 
-            if (opp.Minutes.Count > 0)
-            {
-                // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                for (int i = 0; i < opp.Minutes.Count; i++)
+                if (opp.Days.Count > 0)
                 {
-                    var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol);
-                    if (res != null)
+                    // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+                    // loop para se não executar a primeira
+                    for (int i = 0; i < opp.Days.Count; i++)
                     {
-                        res.Risk = -3;
-                        res.Type = RecommendationType.Minute;
-                        positions.Add(res);
-                        opp.Minutes.Clear();
-                        i = opp.Minutes.Count;
+                        var res = await ExecuteSimpleOrder(opp.Days[0].Symbol);
+                        if (res != null)
+                        {
+                            res.Risk = -7;
+                            res.Type = RecommendationType.Day;
+                            positions.Add(res);
+                            opp.Days.Clear();
+                            i = opp.Days.Count;
+                        }
                     }
-                }
-            }
 
-            if (opp.Days.Count > 0)
-            {
-                // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                // loop para se não executar a primeira
-                for(int i = 0; i<opp.Days.Count; i++)
-                {
-                    var res = await ExecuteSimpleOrder(opp.Days[0].Symbol);
-                    if (res != null)
-                    {
-                        res.Risk = -7;
-                        res.Type = RecommendationType.Day;
-                        positions.Add(res);
-                        opp.Days.Clear();
-                        i = opp.Days.Count;
-                    }
                 }
 
-            }
-
-            if (opp.Hours.Count > 0)
-            {
-                // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                for (int i = 0; i < opp.Hours.Count; i++)
+                if (opp.Hours.Count > 0)
                 {
-                    var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol);
-                    if (res != null)
+                    // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
+                    for (int i = 0; i < opp.Hours.Count; i++)
                     {
-                        res.Risk = -11;
-                        res.Type = RecommendationType.Hour;
-                        positions.Add(res);
-                        opp.Hours.Clear();
-                        i = opp.Hours.Count;
+                        var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol);
+                        if (res != null)
+                        {
+                            res.Risk = -11;
+                            res.Type = RecommendationType.Hour;
+                            positions.Add(res);
+                            opp.Hours.Clear();
+                            i = opp.Hours.Count;
+                        }
                     }
                 }
-            }
 
-            return new ManagerResponse(opp, positions, toMonitor);
+                return new ManagerResponse(opp, positions, toMonitor);
+            } catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}");
+                return new ManagerResponse(opp, positions, toMonitor);
+            }
         }
 
         /// <summary>
@@ -347,19 +363,22 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market)
         {
+            Console.WriteLine("\nCaiu venda");
             if (position.Valorization >= 1)
             {
+                Console.WriteLine("\nCaiu validacao venda acima de 1");
                 if (currentValorization <= (decimal)0.4)
                 {
                     // executeSellOrder
                     var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
                     if (order != null)
                     {
-                        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                         // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                         position.LastPrice = order.Price;
                         position.LastValue = position.Quantity * order.Price;
                         position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+
                         ReportLog.WriteReport(logType.VENDA, position);
                         position = new Position(market, order.Price, order.Quantity);
 
@@ -370,15 +389,17 @@ namespace Trade02.Business.services
             }
             else if (currentValorization + position.Valorization <= position.Risk)
             {
+                Console.WriteLine("\nCaiu venda RISCO");
                 // executeSellOrder
                 var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
                 if (order != null)
                 {
-                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+
                     ReportLog.WriteReport(logType.VENDA, position);
                     position = new Position(market, order.Price, order.Quantity);
 
@@ -458,7 +479,7 @@ namespace Trade02.Business.services
         /// Executa uma ordem de compra que cumpra as condições necessárias para tal.
         /// </summary>
         /// <returns></returns>
-        public async Task<Position> ExecuteSimpleOrder(string symbol, decimal minPrice = decimal.MinValue)
+        public async Task<Position> ExecuteSimpleOrder(string symbol)
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)
@@ -478,12 +499,12 @@ namespace Trade02.Business.services
                 if (j > 0 && price > prevPrice)
                 {
                     // debug comm
-                    //var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
+                    var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
 
                     //debug rem
-                    var order = new BinancePlacedOrder();
-                    order.Price = market.AskPrice;
-                    order.Quantity = quantity;
+                    //var order = new BinancePlacedOrder();
+                    //order.Price = market.AskPrice;
+                    //order.Quantity = quantity;
                     //
 
                     if (order == null)
@@ -508,6 +529,10 @@ namespace Trade02.Business.services
             return position.Data != null ? position : null;
         }
 
+        public async Task<Position> ExecuteSimpleOrder(string symbol, decimal minPrice = decimal.MinValue)
+        {
+            return null;
+        }
         /// <summary>
         /// Get the amount of USDT that can be spent on an order.
         /// </summary>

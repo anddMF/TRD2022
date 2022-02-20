@@ -33,7 +33,7 @@ namespace Trade02.Infra.Cross
                     #region Append
                     using (StreamWriter sw = File.AppendText(filepath))
                     {
-                        sw.WriteLine($"{DateTime.Now};[{typeLog}]; {position.Data.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization};");
+                        sw.WriteLine($"{DateTime.Now};[{typeLog}]; {position.Data.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Type};");
                     }
                     #endregion
                 }

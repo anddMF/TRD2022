@@ -1,7 +1,4 @@
-using Binance.Net;
 using Binance.Net.Interfaces;
-using Binance.Net.Objects;
-using CryptoExchange.Net.Authentication;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -9,14 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Trade02.Business.services;
-using Trade02.Infra.Cross;
-using Trade02.Infra.DAL;
-using Trade02.Infra.DAO;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 
@@ -89,7 +82,7 @@ namespace Trade02
                             minutes = false;
                     }
                     //opp = manager.Opportunities;
-                    //toMonitor = manager.ToMonitor
+                    var toMonitor = manager.ToMonitor;
 
                     // colocado aqui para não ter o delay entre a recomendação e o manaPosition
                     await Task.Delay(20000, stoppingToken);
@@ -98,6 +91,22 @@ namespace Trade02
                         _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n"); 
                     else
                         opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
+
+                    // tira as que sairam mas o ideal seria monitorar
+                    var leftD = from day in opp.Days
+                               where !toMonitor.Any(x => x.Data.Symbol == day.Symbol)
+                               select day;
+                    opp.Days = leftD.ToList();
+
+                    var leftH = from obj in opp.Hours
+                                where !toMonitor.Any(x => x.Data.Symbol == obj.Symbol)
+                                select obj;
+                    opp.Hours = leftH.ToList();
+
+                    var leftM = from obj in opp.Minutes
+                                where !toMonitor.Any(x => x.Data.Symbol == obj.Symbol)
+                                select obj;
+                    opp.Minutes = leftM.ToList();
                 }
 
             }
