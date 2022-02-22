@@ -261,6 +261,7 @@ namespace Trade02.Business.services
                             currentPrice = market.AskPrice;
                             currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
 
+                            // TODO: falta uma validação usando o total valorization
                             if (currentValorization >= (decimal)0.6)
                             {
                                 Console.WriteLine("Current valorization");
@@ -297,11 +298,10 @@ namespace Trade02.Business.services
                     // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
                     for (int i = 0; i < opp.Minutes.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol);
+                        var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol, RecommendationType.Minute);
                         if (res != null)
                         {
                             res.Risk = -3;
-                            res.Type = RecommendationType.Minute;
                             positions.Add(res);
                             opp.Minutes.Clear();
                             i = opp.Minutes.Count;
@@ -315,11 +315,10 @@ namespace Trade02.Business.services
                     // loop para se não executar a primeira
                     for (int i = 0; i < opp.Days.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Days[0].Symbol);
+                        var res = await ExecuteSimpleOrder(opp.Days[0].Symbol, RecommendationType.Day);
                         if (res != null)
                         {
                             res.Risk = -7;
-                            res.Type = RecommendationType.Day;
                             positions.Add(res);
                             opp.Days.Clear();
                             i = opp.Days.Count;
@@ -333,11 +332,10 @@ namespace Trade02.Business.services
                     // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
                     for (int i = 0; i < opp.Hours.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol);
+                        var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol, RecommendationType.Hour);
                         if (res != null)
                         {
                             res.Risk = -11;
-                            res.Type = RecommendationType.Hour;
                             positions.Add(res);
                             opp.Hours.Clear();
                             i = opp.Hours.Count;
@@ -478,7 +476,7 @@ namespace Trade02.Business.services
         /// Executa uma ordem de compra que cumpra as condições necessárias para tal.
         /// </summary>
         /// <returns></returns>
-        public async Task<Position> ExecuteSimpleOrder(string symbol)
+        public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type)
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)
@@ -515,6 +513,7 @@ namespace Trade02.Business.services
                     {
                         _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
                         position = new Position(market, order.Price, order.Quantity);
+                        position.Type = type;
 
                         ReportLog.WriteReport(logType.COMPRA, position);
                         j = 10;
