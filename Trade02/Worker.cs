@@ -45,6 +45,7 @@ namespace Trade02
                 bool minutes = true;
 
                 List<Position> openPositions = new List<Position>();
+                List<Position> toMonitor = new List<Position>();
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
@@ -63,7 +64,7 @@ namespace Trade02
                     Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}\n");
 
                     // manage positions recebendo as recoendações e operações em aperto
-                    var manager = await _portfolioSvc.ManagePosition(opp, openPositions);
+                    var manager = await _portfolioSvc.ManagePosition(opp, openPositions, toMonitor);
 
                     
                     openPositions = manager.OpenPositions;
@@ -82,7 +83,7 @@ namespace Trade02
                             minutes = false;
                     }
                     //opp = manager.Opportunities;
-                    var toMonitor = manager.ToMonitor;
+                    toMonitor = manager.ToMonitor;
 
                     // colocado aqui para não ter o delay entre a recomendação e o manaPosition
                     await Task.Delay(20000, stoppingToken);

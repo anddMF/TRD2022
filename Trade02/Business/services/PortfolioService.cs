@@ -220,9 +220,8 @@ namespace Trade02.Business.services
         /// <param name="opp">oportunidades de compra</param>
         /// <param name="positions">posições que já estão em aberto</param>
         /// <returns></returns>
-        public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions)
+        public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            List<Position> toMonitor = new List<Position>();
             int stopCounter = 0;
             // manage das posicoes em aberto
             try
