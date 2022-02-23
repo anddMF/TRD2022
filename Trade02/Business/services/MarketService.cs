@@ -168,6 +168,9 @@ namespace Trade02.Business.services
 
         public async Task<OpportunitiesResponse> CheckOppotunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes)
         {
+            // falta uma validação para recomendações repetidas em diferentes tipos
+            HashSet<string> alreadyUsed = new HashSet<string>();
+
             List<IBinanceTick> daysList = new List<IBinanceTick>();
             List<IBinanceTick> hoursList = new List<IBinanceTick>();
             List<IBinanceTick> minutesList = new List<IBinanceTick>();
@@ -180,8 +183,11 @@ namespace Trade02.Business.services
                     var current = currentMarket[i];
                     bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneDay, daysToAnalyze);
 
-                    if (opportunity)
+                    if (opportunity && !alreadyUsed.Contains(current.Symbol))
+                    {
                         daysList.Add(current);
+                        alreadyUsed.Add(current.Symbol);
+                    }
                 }
             }
 
@@ -193,8 +199,11 @@ namespace Trade02.Business.services
                     var current = currentMarket[i];
                     bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneHour, 3);
 
-                    if (opportunity)
+                    if (opportunity && !alreadyUsed.Contains(current.Symbol))
+                    {
                         hoursList.Add(current);
+                        alreadyUsed.Add(current.Symbol);
+                    }
                 }
             }
 
@@ -206,8 +215,11 @@ namespace Trade02.Business.services
                     var current = currentMarket[i];
                     bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.FifteenMinutes, 3);
 
-                    if (opportunity)
+                    if (opportunity && !alreadyUsed.Contains(current.Symbol))
+                    {
                         minutesList.Add(current);
+                        alreadyUsed.Add(current.Symbol);
+                    }
                 }
             }
 
