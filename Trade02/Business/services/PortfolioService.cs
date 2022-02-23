@@ -260,9 +260,9 @@ namespace Trade02.Business.services
                             market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
                             currentPrice = market.AskPrice;
                             currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
-
+                            positions[i].Valorization += currentValorization;
                             // TODO: falta uma validação usando o total valorization
-                            if (currentValorization >= (decimal)0.6)
+                            if (positions[i].Valorization >= (decimal)0.9)
                             {
                                 Console.WriteLine("Current valorization");
                                 stop = true;
@@ -301,7 +301,7 @@ namespace Trade02.Business.services
                         var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol, RecommendationType.Minute);
                         if (res != null)
                         {
-                            res.Risk = -3;
+                            res.Risk = -1;
                             positions.Add(res);
                             opp.Minutes.Clear();
                             i = opp.Minutes.Count;
