@@ -527,9 +527,55 @@ namespace Trade02.Business.services
             return position.Data != null ? position : null;
         }
 
-        public async Task<Position> ExecuteSimpleOrder(string symbol, decimal minPrice = decimal.MinValue)
+        public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type, decimal minPrice = decimal.MinValue)
         {
-            return null;
+            decimal quantity = await GetUSDTAmount();
+            if (quantity == 0)
+                return null;
+
+            Position position = new Position();
+
+            decimal prevPrice = 0;
+            int j = 0;
+
+            while (j < 6)
+            {
+                await Task.Delay(3000);
+                var market = await _clientSvc.GetTicker(symbol);
+                decimal price = market.AskPrice;
+
+                if (j > 0 && price > prevPrice && price > minPrice)
+                {
+                    // debug comm
+                    var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
+
+                    //debug rem
+                    //var order = new BinancePlacedOrder();
+                    //order.Price = market.AskPrice;
+                    //order.Quantity = quantity;
+                    //
+
+                    if (order == null)
+                    {
+                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
+                        position = new Position(market, order.Price, order.Quantity);
+                        position.Type = type;
+
+                        ReportLog.WriteReport(logType.COMPRA, position);
+                        j = 10;
+                    }
+                }
+
+                prevPrice = price;
+                j++;
+            }
+
+            return position.Data != null ? position : null;
         }
         /// <summary>
         /// Get the amount of USDT that can be spent on an order.
