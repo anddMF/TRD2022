@@ -83,9 +83,10 @@ namespace Trade02
                             minutes = false;
                     }
                     //opp = manager.Opportunities;
+                    // cruzar as listas de recomendação com o toMonitor e validar o valor, se não estiver acima do valor de saída, tira da recomendação
                     toMonitor = manager.ToMonitor;
 
-                    // colocado aqui para não ter o delay entre a recomendação e o manaPosition
+                    // colocado aqui para não ter o delay entre a recomendação e o managePosition
                     await Task.Delay(20000, stoppingToken);
 
                     if (!days && !hours && !minutes) 

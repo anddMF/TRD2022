@@ -226,6 +226,53 @@ namespace Trade02.Business.services
             return new OpportunitiesResponse(daysList, hoursList, minutesList);
         }
 
+        /// <summary>
+        /// Faz uma atualização na lista de recomendações, validando se existem moedas já vendidas nas mesmas, caso tenha, somente mantém nas listas caso esteja 1% acima do valor que foi vendida.
+        /// </summary>
+        /// <param name="opp">lista de recomendações</param>
+        /// <param name="assetList">lista de moedas que foram vendidas</param>
+        /// <returns></returns>
+        public OpportunitiesResponse RepurchaseValidation(OpportunitiesResponse opp, List<Position> assetList)
+        {
+            var dayList = assetList.FindAll(x => x.Type == RecommendationType.Day);
+            var hourList = assetList.FindAll(x => x.Type == RecommendationType.Hour);
+            var minuteList = assetList.FindAll(x => x.Type == RecommendationType.Minute);
+
+            opp.Days = RepurchasePercentageValidation(opp.Days, dayList);
+            opp.Hours = RepurchasePercentageValidation(opp.Hours, hourList);
+            opp.Minutes = RepurchasePercentageValidation(opp.Minutes, minuteList);
+
+            return opp;
+        }
+
+        private List<IBinanceTick> RepurchasePercentageValidation(List<IBinanceTick> opp, List<Position> assetList)
+        {
+            var toDelete = new List<IBinanceTick>();
+            for (int i = 0; i < opp.Count; i++)
+            {
+                var current = opp[i];
+                int assetIndex = assetList.FindIndex(x => x.Data.Symbol == current.Symbol);
+                if (assetIndex > -1)
+                {
+                    decimal valorization = ((current.AskPrice - assetList[assetIndex].LastPrice) / assetList[assetIndex].LastPrice) * 100;
+
+                    if (valorization <= 1)
+                        toDelete.Add(current);
+                }
+            }
+
+            if(toDelete.Count > 0)
+            {
+                var left = from list in opp
+                            where !toDelete.Any(x => x.Symbol == list.Symbol)
+                            select list;
+
+                opp = left.ToList();
+            }
+
+            return opp;
+        }
+
         public async Task<bool> IsAKlineOpportunitie(string symbol, KlineInterval interval, int period)
         {
             // separa os últimos X dias de klines

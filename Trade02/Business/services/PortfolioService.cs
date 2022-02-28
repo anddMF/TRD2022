@@ -226,8 +226,6 @@ namespace Trade02.Business.services
             // manage das posicoes em aberto
             try
             {
-
-
                 for (int i = 0; i < positions.Count; i++)
                 {
                     var market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
@@ -318,7 +316,7 @@ namespace Trade02.Business.services
                         var res = await ExecuteSimpleOrder(opp.Days[0].Symbol, RecommendationType.Day);
                         if (res != null)
                         {
-                            res.Risk = -7;
+                            res.Risk = -5;
                             positions.Add(res);
                             opp.Days.Clear();
                             i = opp.Days.Count;
@@ -335,7 +333,7 @@ namespace Trade02.Business.services
                         var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol, RecommendationType.Hour);
                         if (res != null)
                         {
-                            res.Risk = -11;
+                            res.Risk = -4;
                             positions.Add(res);
                             opp.Hours.Clear();
                             i = opp.Hours.Count;
@@ -377,7 +375,7 @@ namespace Trade02.Business.services
                         _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                         ReportLog.WriteReport(logType.VENDA, position);
-                        position = new Position(market, order.Price, order.Quantity);
+                        //position = new Position(market, order.Price, order.Quantity);
 
                         return position;
                     }
@@ -398,7 +396,7 @@ namespace Trade02.Business.services
                     _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                     ReportLog.WriteReport(logType.VENDA, position);
-                    position = new Position(market, order.Price, order.Quantity);
+                    //position = new Position(market, order.Price, order.Quantity);
 
                     return position;
                 }
@@ -475,6 +473,8 @@ namespace Trade02.Business.services
         /// <summary>
         /// Executa uma ordem de compra que cumpra as condições necessárias para tal.
         /// </summary>
+        /// <param name="symbol">símbolo que tentará ser comprado</param>
+        /// <param name="type">utilizado para o log</param>
         /// <returns></returns>
         public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type)
         {
@@ -511,7 +511,7 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
+                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}, type: {type}");
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
