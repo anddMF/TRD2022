@@ -90,25 +90,13 @@ namespace Trade02
                     await Task.Delay(20000, stoppingToken);
 
                     if (!days && !hours && !minutes) 
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n"); 
+                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n");
                     else
+                    {
                         opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
-
-                    // tira as que sairam mas o ideal seria monitorar
-                    var leftD = from day in opp.Days
-                               where !toMonitor.Any(x => x.Data.Symbol == day.Symbol)
-                               select day;
-                    opp.Days = leftD.ToList();
-
-                    var leftH = from obj in opp.Hours
-                                where !toMonitor.Any(x => x.Data.Symbol == obj.Symbol)
-                                select obj;
-                    opp.Hours = leftH.ToList();
-
-                    var leftM = from obj in opp.Minutes
-                                where !toMonitor.Any(x => x.Data.Symbol == obj.Symbol)
-                                select obj;
-                    opp.Minutes = leftM.ToList();
+                        if(toMonitor.Count > 0)
+                            opp = _marketSvc.RepurchaseValidation(opp, toMonitor);
+                    }
                 }
 
             }
