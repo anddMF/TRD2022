@@ -527,7 +527,7 @@ namespace Trade02.Business.services
             return position.Data != null ? position : null;
         }
 
-        public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type, decimal minPrice = decimal.MinValue)
+        public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type, decimal minPrice)
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)
