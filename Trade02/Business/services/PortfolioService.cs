@@ -226,6 +226,7 @@ namespace Trade02.Business.services
             HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Data.Symbol).ToList());
 
             int stopCounter = 0;
+            var sold = new List<string>();
             // manage das posicoes em aberto
             try
             {
@@ -273,7 +274,12 @@ namespace Trade02.Business.services
                                 {
                                     // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                                     //positions[i] = responseSell;
-                                    toMonitor.Add(responseSell);
+                                    sold.Add(responseSell.Data.Symbol);
+                                    int index = toMonitor.FindIndex(x => x.Data.Symbol == responseSell.Data.Symbol);
+                                    if (index > -1)
+                                        toMonitor[index] = responseSell;
+                                    else
+                                        toMonitor.Add(responseSell);
                                 }
                             }
                             else
@@ -290,8 +296,8 @@ namespace Trade02.Business.services
                     positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
                 }
 
-                foreach (var obj in toMonitor)
-                    positions.RemoveAll(x => x.Data.Symbol == obj.Data.Symbol);
+                foreach (var obj in sold)
+                    positions.RemoveAll(x => x.Data.Symbol == obj);
                 
                 // compras
 
