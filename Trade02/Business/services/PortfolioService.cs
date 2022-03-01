@@ -222,6 +222,8 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
+            HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Data.Symbol).ToList());
+
             int stopCounter = 0;
             // manage das posicoes em aberto
             try
@@ -237,7 +239,7 @@ namespace Trade02.Business.services
 
                     positions[i].LastPrice = currentPrice;
                     Console.WriteLine($"\nMANAGE: ticker {positions[i].Data.Symbol}; current val {currentValorization}; last val {positions[i].Valorization}\n");
-                    if (currentValorization < 0)
+                    if (currentValorization <= 0)
                     {
                         var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
                         if (responseSell != null)
@@ -250,7 +252,7 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        // se essa moeda tiver renovando maximas acima de 0.6%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
+                        // se essa moeda tiver renovando maximas acima de 0%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
 
                         while (!stop)
                         {
@@ -296,14 +298,19 @@ namespace Trade02.Business.services
                     // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
                     for (int i = 0; i < opp.Minutes.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Minutes[0].Symbol, RecommendationType.Minute);
-                        if (res != null)
-                        {
-                            res.Risk = -1;
-                            positions.Add(res);
-                            opp.Minutes.Clear();
-                            i = opp.Minutes.Count;
+                        if(!alreadyUsed.Contains(opp.Minutes[i].Symbol)){
+                            var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationType.Minute);
+                            if (res != null)
+                            {
+                                res.Risk = -1;
+                                positions.Add(res);
+                                opp.Minutes.Clear();
+                                i = opp.Minutes.Count;
+
+                                alreadyUsed.Add(opp.Minutes[i].Symbol);
+                            }
                         }
+                        
                     }
                 }
 
@@ -313,13 +320,18 @@ namespace Trade02.Business.services
                     // loop para se não executar a primeira
                     for (int i = 0; i < opp.Days.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Days[0].Symbol, RecommendationType.Day);
-                        if (res != null)
+                        if (!alreadyUsed.Contains(opp.Days[i].Symbol))
                         {
-                            res.Risk = -5;
-                            positions.Add(res);
-                            opp.Days.Clear();
-                            i = opp.Days.Count;
+                            var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationType.Day);
+                            if (res != null)
+                            {
+                                res.Risk = -4;
+                                positions.Add(res);
+                                opp.Days.Clear();
+                                i = opp.Days.Count;
+
+                                alreadyUsed.Add(opp.Minutes[i].Symbol);
+                            }
                         }
                     }
 
@@ -330,13 +342,18 @@ namespace Trade02.Business.services
                     // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
                     for (int i = 0; i < opp.Hours.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Hours[0].Symbol, RecommendationType.Hour);
-                        if (res != null)
+                        if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
                         {
-                            res.Risk = -4;
-                            positions.Add(res);
-                            opp.Hours.Clear();
-                            i = opp.Hours.Count;
+                            var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationType.Hour);
+                            if (res != null)
+                            {
+                                res.Risk = -2;
+                                positions.Add(res);
+                                opp.Hours.Clear();
+                                i = opp.Hours.Count;
+
+                                alreadyUsed.Add(opp.Hours[i].Symbol);
+                            }
                         }
                     }
                 }
@@ -359,7 +376,7 @@ namespace Trade02.Business.services
         public async Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market)
         {
             Console.WriteLine("\nCaiu venda");
-            if (position.Valorization >= 1)
+            if (position.Valorization >= (decimal)0.9)
             {
                 Console.WriteLine("\nCaiu validacao venda acima de 1");
                 if (currentValorization <= (decimal)0.4)
