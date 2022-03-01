@@ -222,6 +222,7 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
+            var a = positions.ConvertAll(x => x.Data.Symbol).ToList();
             HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Data.Symbol).ToList());
 
             int stopCounter = 0;
@@ -289,77 +290,66 @@ namespace Trade02.Business.services
                     positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
                 }
 
-                foreach(var obj in toMonitor)
+                foreach (var obj in toMonitor)
                     positions.RemoveAll(x => x.Data.Symbol == obj.Data.Symbol);
+                
+                // compras
 
-                // se ainda esta nas listas de opp, quer dizer que não foram compradas 
-                if (opp.Minutes.Count > 0)
+                for (int i = 0; i < opp.Minutes.Count; i++)
                 {
-                    // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                    for (int i = 0; i < opp.Minutes.Count; i++)
+                    if (!alreadyUsed.Contains(opp.Minutes[i].Symbol))
                     {
-                        if(!alreadyUsed.Contains(opp.Minutes[i].Symbol)){
-                            var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationType.Minute);
-                            if (res != null)
-                            {
-                                res.Risk = -1;
-                                positions.Add(res);
-                                opp.Minutes.Clear();
-                                i = opp.Minutes.Count;
-
-                                alreadyUsed.Add(opp.Minutes[i].Symbol);
-                            }
-                        }
-                        
-                    }
-                }
-
-                if (opp.Days.Count > 0)
-                {
-                    // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                    // loop para se não executar a primeira
-                    for (int i = 0; i < opp.Days.Count; i++)
-                    {
-                        if (!alreadyUsed.Contains(opp.Days[i].Symbol))
+                        var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationType.Minute);
+                        if (res != null)
                         {
-                            var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationType.Day);
-                            if (res != null)
-                            {
-                                res.Risk = -4;
-                                positions.Add(res);
-                                opp.Days.Clear();
-                                i = opp.Days.Count;
+                            alreadyUsed.Add(opp.Minutes[i].Symbol);
 
-                                alreadyUsed.Add(opp.Minutes[i].Symbol);
-                            }
+                            res.Risk = -1;
+                            positions.Add(res);
+                            opp.Minutes.Clear();
+                            i = opp.Minutes.Count;
                         }
                     }
 
                 }
 
-                if (opp.Hours.Count > 0)
+                for (int i = 0; i < opp.Days.Count; i++)
                 {
-                    // executar a compra. Por enquanto é só uma recomendação de cada então não precisa de loop
-                    for (int i = 0; i < opp.Hours.Count; i++)
+                    if (!alreadyUsed.Contains(opp.Days[i].Symbol))
                     {
-                        if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
+                        var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationType.Day);
+                        if (res != null)
                         {
-                            var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationType.Hour);
-                            if (res != null)
-                            {
-                                res.Risk = -2;
-                                positions.Add(res);
-                                opp.Hours.Clear();
-                                i = opp.Hours.Count;
+                            alreadyUsed.Add(opp.Days[i].Symbol);
 
-                                alreadyUsed.Add(opp.Hours[i].Symbol);
-                            }
+                            res.Risk = -4;
+                            positions.Add(res);
+                            opp.Days.Clear();
+                            i = opp.Days.Count;
+                        }
+                    }
+                }
+
+                for (int i = 0; i < opp.Hours.Count; i++)
+                {
+                    if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
+                    {
+                        var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationType.Hour);
+                        if (res != null)
+                        {
+                            alreadyUsed.Add(opp.Hours[i].Symbol);
+
+                            res.Risk = -2;
+                            positions.Add(res);
+                            opp.Hours.Clear();
+                            i = opp.Hours.Count;
                         }
                     }
                 }
 
                 return new ManagerResponse(opp, positions, toMonitor);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}");
                 return new ManagerResponse(opp, positions, toMonitor);
