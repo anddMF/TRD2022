@@ -249,6 +249,7 @@ namespace Trade02.Business.services
                             // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                             //positions[i] = responseSell;
                             toMonitor.Add(responseSell);
+                            sold.Add(responseSell.Data.Symbol);
                         }
 
                     }
@@ -328,7 +329,7 @@ namespace Trade02.Business.services
                         {
                             alreadyUsed.Add(opp.Days[i].Symbol);
 
-                            res.Risk = -4;
+                            res.Risk = -3;
                             positions.Add(res);
                             opp.Days.Clear();
                             i = opp.Days.Count;
