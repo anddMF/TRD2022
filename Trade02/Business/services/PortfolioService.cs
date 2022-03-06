@@ -263,9 +263,10 @@ namespace Trade02.Business.services
                             market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
                             currentPrice = market.AskPrice;
                             currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
-                            positions[i].Valorization += currentValorization;
+                            positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
+                            Console.WriteLine("valorizacao somada: " + positions[i].Valorization);
                             // TODO: falta uma validação usando o total valorization
-                            if (positions[i].Valorization >= (decimal)0.9)
+                            if (positions[i].Valorization >= (decimal)0.7)
                             {
                                 Console.WriteLine("Current valorization");
                                 stop = true;
@@ -373,10 +374,10 @@ namespace Trade02.Business.services
         public async Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market)
         {
             Console.WriteLine("\nCaiu venda");
-            if (position.Valorization >= (decimal)0.9)
+            if (position.Valorization >= (decimal)0.7)
             {
                 Console.WriteLine("\nCaiu validacao venda acima de 1");
-                if (currentValorization <= (decimal)0.4)
+                if (currentValorization <= (decimal)0.3)
                 {
                     // executeSellOrder
                     var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
