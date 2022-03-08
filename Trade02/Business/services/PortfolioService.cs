@@ -230,6 +230,8 @@ namespace Trade02.Business.services
             // se já tiver passado do cap de profit, ele diminuiu o sellPercentage para poder sair mais rápido das posições em aberto
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.2;
+            else
+                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.7;
 
             _logger.LogInformation($"SELL PERCENTAGE: {AppSettings.TradeConfiguration.SellPercentage}");
             try
