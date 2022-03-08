@@ -26,6 +26,8 @@ namespace Trade02
         private readonly decimal maxSearchPercentage = AppSettings.TradeConfiguration.MaxSearchPercentage;
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
 
+        private decimal currentProfit = AppSettings.TradeConfiguration.CurrentProfit;
+
         public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory)
         {
             _logger = logger;
@@ -89,13 +91,19 @@ namespace Trade02
                     // colocado aqui para não ter o delay entre a recomendação e o managePosition
                     await Task.Delay(20000, stoppingToken);
 
-                    if (!days && !hours && !minutes) 
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n");
-                    else
+                    if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
                     {
-                        opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
-                        if(toMonitor.Count > 0)
-                            opp = _marketSvc.RepurchaseValidation(opp, toMonitor);
+                        if (!days && !hours && !minutes)
+                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n");
+                        else
+                        {
+                            opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
+                            if (toMonitor.Count > 0)
+                                opp = _marketSvc.RepurchaseValidation(opp, toMonitor);
+                        }
+                    } else if (openPositions.Count == 0){
+                        _logger.LogInformation($"\n\t ###### Lucro maximo atingido ######");
+                        runner = false;
                     }
                 }
 

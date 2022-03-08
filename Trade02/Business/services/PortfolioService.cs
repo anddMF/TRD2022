@@ -222,12 +222,16 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            var a = positions.ConvertAll(x => x.Data.Symbol).ToList();
             HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Data.Symbol).ToList());
 
             int stopCounter = 0;
             var sold = new List<string>();
-            // manage das posicoes em aberto
+
+            // se já tiver passado do cap de profit, ele diminuiu o sellPercentage para poder sair mais rápido das posições em aberto
+            if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
+                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.2;
+
+            _logger.LogInformation($"SELL PERCENTAGE: {AppSettings.TradeConfiguration.SellPercentage}");
             try
             {
                 for (int i = 0; i < positions.Count; i++)
@@ -265,8 +269,9 @@ namespace Trade02.Business.services
                             currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
                             positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
                             Console.WriteLine("valorizacao somada: " + positions[i].Valorization);
+
                             // TODO: falta uma validação usando o total valorization
-                            if (positions[i].Valorization >= (decimal)0.7)
+                            if (positions[i].Valorization >= AppSettings.TradeConfiguration.SellPercentage)
                             {
                                 Console.WriteLine("Current valorization");
                                 stop = true;
@@ -300,57 +305,59 @@ namespace Trade02.Business.services
 
                 foreach (var obj in sold)
                     positions.RemoveAll(x => x.Data.Symbol == obj);
-                
+
                 // compras
-
-                for (int i = 0; i < opp.Minutes.Count; i++)
+                if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
                 {
-                    if (!alreadyUsed.Contains(opp.Minutes[i].Symbol))
+                    for (int i = 0; i < opp.Minutes.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationType.Minute);
-                        if (res != null)
+                        if (!alreadyUsed.Contains(opp.Minutes[i].Symbol))
                         {
-                            alreadyUsed.Add(opp.Minutes[i].Symbol);
+                            var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationType.Minute);
+                            if (res != null)
+                            {
+                                alreadyUsed.Add(opp.Minutes[i].Symbol);
 
-                            res.Risk = -1;
-                            positions.Add(res);
-                            opp.Minutes.Clear();
-                            i = opp.Minutes.Count;
+                                res.Risk = -1;
+                                positions.Add(res);
+                                opp.Minutes.Clear();
+                                i = opp.Minutes.Count;
+                            }
+                        }
+
+                    }
+
+                    for (int i = 0; i < opp.Days.Count; i++)
+                    {
+                        if (!alreadyUsed.Contains(opp.Days[i].Symbol))
+                        {
+                            var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationType.Day);
+                            if (res != null)
+                            {
+                                alreadyUsed.Add(opp.Days[i].Symbol);
+
+                                res.Risk = -3;
+                                positions.Add(res);
+                                opp.Days.Clear();
+                                i = opp.Days.Count;
+                            }
                         }
                     }
 
-                }
-
-                for (int i = 0; i < opp.Days.Count; i++)
-                {
-                    if (!alreadyUsed.Contains(opp.Days[i].Symbol))
+                    for (int i = 0; i < opp.Hours.Count; i++)
                     {
-                        var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationType.Day);
-                        if (res != null)
+                        if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
                         {
-                            alreadyUsed.Add(opp.Days[i].Symbol);
+                            var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationType.Hour);
+                            if (res != null)
+                            {
+                                alreadyUsed.Add(opp.Hours[i].Symbol);
 
-                            res.Risk = -3;
-                            positions.Add(res);
-                            opp.Days.Clear();
-                            i = opp.Days.Count;
-                        }
-                    }
-                }
-
-                for (int i = 0; i < opp.Hours.Count; i++)
-                {
-                    if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
-                    {
-                        var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationType.Hour);
-                        if (res != null)
-                        {
-                            alreadyUsed.Add(opp.Hours[i].Symbol);
-
-                            res.Risk = -2;
-                            positions.Add(res);
-                            opp.Hours.Clear();
-                            i = opp.Hours.Count;
+                                res.Risk = -2;
+                                positions.Add(res);
+                                opp.Hours.Clear();
+                                i = opp.Hours.Count;
+                            }
                         }
                     }
                 }
@@ -374,28 +381,47 @@ namespace Trade02.Business.services
         public async Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market)
         {
             Console.WriteLine("\nCaiu venda");
-            if (position.Valorization >= (decimal)0.7)
+            if (position.Valorization >= AppSettings.TradeConfiguration.SellPercentage)
             {
                 Console.WriteLine("\nCaiu validacao venda acima de 1");
-                if (currentValorization <= (decimal)0.3)
+
+                // esse if mantinha a posição se a valorização atual fosse maior que 0.3 porque poderia ser uma tendencia de subida
+                //if (currentValorization <= (decimal)0.3)
+                //{
+                //    // executeSellOrder
+                //    var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                //    if (order != null)
+                //    {
+                //        // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                //        position.LastPrice = order.Price;
+                //        position.LastValue = position.Quantity * order.Price;
+                //        position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                //        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+
+                //        ReportLog.WriteReport(logType.VENDA, position);
+                //        //position = new Position(market, order.Price, order.Quantity);
+
+                //        return position;
+                //    }
+                //    return null;
+                //}
+
+                var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                if (order != null)
                 {
-                    // executeSellOrder
-                    var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
-                    if (order != null)
-                    {
-                        // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
-                        position.LastPrice = order.Price;
-                        position.LastValue = position.Quantity * order.Price;
-                        position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
-                        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
+                    position.LastPrice = order.Price;
+                    position.LastValue = position.Quantity * order.Price;
+                    position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
-                        ReportLog.WriteReport(logType.VENDA, position);
-                        //position = new Position(market, order.Price, order.Quantity);
+                    ReportLog.WriteReport(logType.VENDA, position);
+                    //position = new Position(market, order.Price, order.Quantity);
+                    AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
 
-                        return position;
-                    }
-                    return null;
+                    return position;
                 }
+                return null;
             }
             else if (currentValorization + position.Valorization <= position.Risk)
             {
@@ -412,7 +438,7 @@ namespace Trade02.Business.services
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
-
+                    AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
                     return position;
                 }
                 return null;
