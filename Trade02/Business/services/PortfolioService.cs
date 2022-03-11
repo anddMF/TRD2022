@@ -233,7 +233,7 @@ namespace Trade02.Business.services
             else
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.7;
 
-            _logger.LogInformation($"SELL PERCENTAGE: {AppSettings.TradeConfiguration.SellPercentage}");
+            Console.WriteLine($"SELL PERCENTAGE: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}");
             try
             {
                 for (int i = 0; i < positions.Count; i++)
