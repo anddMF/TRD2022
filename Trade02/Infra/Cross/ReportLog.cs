@@ -19,7 +19,7 @@ namespace Trade02.Infra.Cross
                 if (!Directory.Exists(pathFolder))
                     Directory.CreateDirectory(pathFolder);
                 #endregion
-                string test1 = DateTime.Now.Date.ToString("yyyyMMdd");
+
                 string filepath = string.Format("{0}\\{1}.csv", pathFolder, "REPORTS-"+ DateTime.Now.Date.ToString("yyyyMMdd"));
 
                 if (!File.Exists(filepath))
