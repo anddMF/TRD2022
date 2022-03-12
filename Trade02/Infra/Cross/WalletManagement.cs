@@ -27,7 +27,7 @@ namespace Trade02.Infra.Cross
                 {
                     using (StreamWriter sw = File.AppendText(filePath))
                     {
-                        sw.WriteLine($"{DateTime.Now}; {position.Data.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit};");
+                        sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit};");
                     }
                 }
                 return true;
@@ -44,7 +44,7 @@ namespace Trade02.Infra.Cross
             using (StreamWriter sw = File.CreateText(filepath))
             {
                 sw.WriteLine($"DATE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;QUANTITY;REC TYPE;CURRENT VALORIZATION;");
-                sw.WriteLine($"{DateTime.Now}; {position.Data.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit};");
+                sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit};");
             }
         }
 

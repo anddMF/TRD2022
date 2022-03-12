@@ -54,7 +54,7 @@ namespace Trade02.Business.services
                 for (int i = 0; i < openPositions.Count; i++)
                 {
                     Position currentPosition = openPositions[i];
-                    var marketPosition = await _marketSvc.GetSingleTicker(currentPosition.Data.Symbol);
+                    var marketPosition = await _marketSvc.GetSingleTicker(currentPosition.Symbol);
                     // -0.01 adicionado para o preço de venda ter menos chance de não ser executado
                     openPositions[i].LastValue = (marketPosition.AskPrice * openPositions[i].Quantity) - (decimal)0.01;
 
@@ -63,7 +63,7 @@ namespace Trade02.Business.services
                     decimal currentValorization = ((marketPosition.AskPrice - currentPosition.LastMaxPrice) / currentPosition.LastMaxPrice) * 100;
                     decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Data.Symbol}, val: {totalValorization}, cur val: {currentValorization}, wei: {currentPosition.Data.WeightedAveragePrice}");
+                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Symbol}, val: {totalValorization}, cur val: {currentValorization}, wei: {currentPosition.Data.WeightedAveragePrice}");
 
                     openPositions[i].LastMaxPrice = Math.Max(marketPosition.AskPrice, currentPosition.LastMaxPrice);
 
@@ -71,7 +71,7 @@ namespace Trade02.Business.services
                     if (maxPositionMinutes > 0 && openPositions[i].Minutes >= maxPositionMinutes && totalValorization < 1)
                     {
                         Console.WriteLine("Caiu validacao do tempo");
-                        var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
+                        var order = await _marketSvc.PlaceSellOrder(currentPosition.Symbol, currentPosition.Quantity);
 
                         if (order != null)
                         {
@@ -79,7 +79,7 @@ namespace Trade02.Business.services
                             openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                             openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                            _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
+                            _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
 
                             ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                         }
@@ -88,7 +88,7 @@ namespace Trade02.Business.services
                     // Caso tenha uma valorização positiva, atualiza os dados no open position e não executa a venda
                     else if (currentValorization > 0)
                     {
-                        //Console.WriteLine($"\n############## Manage: ticker {openPositions[i].Data.Symbol}, valorizado em {totalValorization}, current {currentValorization}");
+                        //Console.WriteLine($"\n############## Manage: ticker {openPositions[i].Symbol}, valorizado em {totalValorization}, current {currentValorization}");
 
                         openPositions[i].LastPrice = marketPosition.AskPrice;
                         openPositions[i].LastValue = marketPosition.AskPrice * openPositions[i].Quantity;
@@ -102,7 +102,7 @@ namespace Trade02.Business.services
                         decimal lowLevel = totalValorization >= (decimal)1 ? (decimal)-0.1 : (decimal)-0.3;
                         if (totalValorization <= (decimal)-0.2)
                         {
-                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
+                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Symbol, currentPosition.Quantity);
 
                             if (order != null)
                             {
@@ -113,7 +113,7 @@ namespace Trade02.Business.services
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                                _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
+                                _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
@@ -122,7 +122,7 @@ namespace Trade02.Business.services
                         else if (currentValorization <= lowLevel)
                         {
                             Console.WriteLine("\n----- venda low level");
-                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Data.Symbol, currentPosition.Quantity);
+                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Symbol, currentPosition.Quantity);
 
                             if (order != null)
                             {
@@ -134,7 +134,7 @@ namespace Trade02.Business.services
                                 openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
                                 openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
-                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Data.Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
+                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
 
                                 ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                             }
@@ -222,7 +222,7 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Data.Symbol).ToList());
+            HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
 
             int stopCounter = 0;
             var sold = new List<string>();
@@ -238,7 +238,7 @@ namespace Trade02.Business.services
             {
                 for (int i = 0; i < positions.Count; i++)
                 {
-                    var market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
+                    var market = await _clientSvc.GetTicker(positions[i].Symbol);
                     decimal currentPrice = market.AskPrice;
 
                     decimal currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
@@ -246,7 +246,7 @@ namespace Trade02.Business.services
                     bool stop = false;
 
                     positions[i].LastPrice = currentPrice;
-                    Console.WriteLine($"\nMANAGE: ticker {positions[i].Data.Symbol}; current val {currentValorization}; last val {positions[i].Valorization}\n");
+                    Console.WriteLine($"\nMANAGE: ticker {positions[i].Symbol}; current val {currentValorization}; last val {positions[i].Valorization}\n");
                     if (currentValorization <= 0)
                     {
                         var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
@@ -255,7 +255,7 @@ namespace Trade02.Business.services
                             // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                             //positions[i] = responseSell;
                             toMonitor.Add(responseSell);
-                            sold.Add(responseSell.Data.Symbol);
+                            sold.Add(responseSell.Symbol);
                         }
 
                     }
@@ -266,7 +266,7 @@ namespace Trade02.Business.services
                         while (!stop)
                         {
                             await Task.Delay(2000);
-                            market = await _clientSvc.GetTicker(positions[i].Data.Symbol);
+                            market = await _clientSvc.GetTicker(positions[i].Symbol);
                             currentPrice = market.AskPrice;
                             currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
                             positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
@@ -283,8 +283,8 @@ namespace Trade02.Business.services
                                 {
                                     // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                                     //positions[i] = responseSell;
-                                    sold.Add(responseSell.Data.Symbol);
-                                    int index = toMonitor.FindIndex(x => x.Data.Symbol == responseSell.Data.Symbol);
+                                    sold.Add(responseSell.Symbol);
+                                    int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
                                     if (index > -1)
                                         toMonitor[index] = responseSell;
                                     else
@@ -306,7 +306,7 @@ namespace Trade02.Business.services
                 }
 
                 foreach (var obj in sold)
-                    positions.RemoveAll(x => x.Data.Symbol == obj);
+                    positions.RemoveAll(x => x.Symbol == obj);
 
                 // compras
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
@@ -391,14 +391,14 @@ namespace Trade02.Business.services
                 //if (currentValorization <= (decimal)0.3)
                 //{
                 //    // executeSellOrder
-                //    var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                //    var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 //    if (order != null)
                 //    {
                 //        // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                 //        position.LastPrice = order.Price;
                 //        position.LastValue = position.Quantity * order.Price;
                 //        position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
-                //        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                //        _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                 //        ReportLog.WriteReport(logType.VENDA, position);
                 //        //position = new Position(market, order.Price, order.Quantity);
@@ -408,14 +408,14 @@ namespace Trade02.Business.services
                 //    return null;
                 //}
 
-                var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 if (order != null)
                 {
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
-                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
@@ -429,14 +429,14 @@ namespace Trade02.Business.services
             {
                 Console.WriteLine("\nCaiu venda RISCO");
                 // executeSellOrder
-                var order = await ExecuteSellOrder(position.Data.Symbol, position.Quantity);
+                var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 if (order != null)
                 {
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
-                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Data.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);

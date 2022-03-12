@@ -251,7 +251,7 @@ namespace Trade02.Business.services
             for (int i = 0; i < opp.Count; i++)
             {
                 var current = opp[i];
-                int assetIndex = assetList.FindIndex(x => x.Data.Symbol == current.Symbol);
+                int assetIndex = assetList.FindIndex(x => x.Symbol == current.Symbol);
                 if (assetIndex > -1)
                 {
                     decimal valorization = ((current.AskPrice - assetList[assetIndex].LastPrice) / assetList[assetIndex].LastPrice) * 100;
