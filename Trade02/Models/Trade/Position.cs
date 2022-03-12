@@ -8,6 +8,7 @@ namespace Trade02.Models.Trade
     public class Position
     {
         public IBinanceTick Data { get; set; }
+        public string Symbol { get; set; }
         public decimal Valorization { get; set; }
         public decimal InitialValue { get; set; }
         public decimal InitialPrice { get; set; }
@@ -28,6 +29,22 @@ namespace Trade02.Models.Trade
         public Position(IBinanceTick data, decimal orderPrice, decimal quantity)
         {
             Data = data;
+            Symbol = data.Symbol;
+            Valorization = 0;
+            InitialPrice = orderPrice;
+            LastMaxPrice = orderPrice;
+            InitialValue = orderPrice * quantity;
+            Quantity = quantity;
+            LastPrice = orderPrice;
+            LastValue = InitialValue;
+            Minutes = 1;
+            Risk = -10;
+            Type = RecommendationType.Day;
+        }
+
+        public Position(string symbol, decimal orderPrice, decimal quantity)
+        {
+            Symbol = symbol;
             Valorization = 0;
             InitialPrice = orderPrice;
             LastMaxPrice = orderPrice;
