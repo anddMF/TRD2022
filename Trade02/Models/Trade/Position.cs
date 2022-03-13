@@ -44,7 +44,7 @@ namespace Trade02.Models.Trade
 
         public Position(string symbol, decimal orderPrice, decimal quantity)
         {
-            Symbol = symbol;
+            Symbol = symbol.Trim();
             Valorization = 0;
             InitialPrice = orderPrice;
             LastMaxPrice = orderPrice;

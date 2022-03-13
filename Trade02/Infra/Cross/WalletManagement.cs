@@ -47,7 +47,6 @@ namespace Trade02.Infra.Cross
 
             if (filePositions.Count > 0)
             {
-                // remover o arquivo e adicionar o file positions
                 for(int i = 0; i <= filePositions.Count; i++)
                 {
                     Position pos = filePositions[i];
@@ -71,10 +70,15 @@ namespace Trade02.Infra.Cross
         {
             try
             {
+                List<Position> positions = new List<Position>();
+
                 if (!Directory.Exists(pathFolder))
                     return null;
 
-                List<Position> positions = File.ReadAllLines(pathFolder).Skip(1).Select(x => TransformLineIntoPosition(x)).ToList();
+                if (!File.Exists(filePath))
+                    return null;
+
+                positions = File.ReadAllLines(filePath).Skip(1).Select(x => TransformLineIntoPosition(x)).ToList();
 
                 return positions;
             }

@@ -47,6 +47,9 @@ namespace Trade02
                 bool minutes = true;
 
                 List<Position> openPositions = new List<Position>();
+                var open = _portfolioSvc.GetLastPositions();
+                openPositions = open == null ? new List<Position>() : open;
+
                 List<Position> toMonitor = new List<Position>();
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
