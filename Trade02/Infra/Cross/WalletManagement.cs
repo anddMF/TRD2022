@@ -10,14 +10,13 @@ namespace Trade02.Infra.Cross
     public class WalletManagement
     {
         private static readonly string pathFolder = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\WALLET");
+        private static readonly string filePath = $"{pathFolder}\\positions.csv";
         public static bool AddPositionToFile(Position position, decimal currentProfit)
         {
             try
             {
                 if (!Directory.Exists(pathFolder))
                     Directory.CreateDirectory(pathFolder);
-
-                string filePath = $"{pathFolder}\\positions.csv";
 
                 if (!File.Exists(filePath))
                 {
@@ -37,6 +36,26 @@ namespace Trade02.Infra.Cross
                 Console.WriteLine("ERRO ao adicionar posicoes no arquivo positions: " + ex.Message);
                 return false;
             }
+        }
+
+        public static bool RemovePositionFromFile(string symbol, decimal currentProfit)
+        {
+            var filePositions = GetPositionFromFile();
+            filePositions = filePositions.FindAll(x => x.Symbol != symbol);
+
+            File.Delete(filePath);
+
+            if (filePositions.Count > 0)
+            {
+                // remover o arquivo e adicionar o file positions
+                for(int i = 0; i <= filePositions.Count; i++)
+                {
+                    Position pos = filePositions[i];
+                    AddPositionToFile(pos, currentProfit);
+                }
+            }
+
+            return false;
         }
 
         private static void CreateFile(Position position, decimal currentProfit, string filepath)
