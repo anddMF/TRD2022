@@ -53,7 +53,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.GetTopPercentages(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.GetTopPercentages(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 throw;
             }
         }
@@ -73,7 +73,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.GetSingleTicker(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.GetSingleTicker(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
         }
@@ -109,7 +109,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
         }
@@ -131,7 +131,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
         }

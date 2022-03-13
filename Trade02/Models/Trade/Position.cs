@@ -57,6 +57,21 @@ namespace Trade02.Models.Trade
             Type = RecommendationType.Day;
         }
 
+        public Position(string symbol, decimal orderPrice, decimal quantity, RecommendationType type)
+        {
+            Symbol = symbol.Trim();
+            Valorization = 0;
+            InitialPrice = orderPrice;
+            LastMaxPrice = orderPrice;
+            InitialValue = orderPrice * quantity;
+            Quantity = quantity;
+            LastPrice = orderPrice;
+            LastValue = InitialValue;
+            Minutes = 1;
+            Risk = -2;
+            Type = type;
+        }
+
     }
 
     public enum RecommendationType

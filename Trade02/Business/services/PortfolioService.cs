@@ -150,7 +150,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
         }
@@ -187,7 +187,7 @@ namespace Trade02.Business.services
                     //
 
                     if (order == null)
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                        _logger.LogError($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
                     else
                         return order;
                 }
@@ -228,7 +228,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetLastPositions(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
 
@@ -274,13 +274,14 @@ namespace Trade02.Business.services
                         {
                             // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                             //positions[i] = responseSell;
-                            
+
                             sold.Add(responseSell.Symbol);
                             int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
                             if (index > -1)
                                 toMonitor[index] = responseSell;
                             else
                                 toMonitor.Add(responseSell);
+
                             WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit);
                         }
 
@@ -399,7 +400,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return new ManagerResponse(opp, positions, toMonitor);
             }
         }
@@ -696,7 +697,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
 
@@ -717,7 +718,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetBalance(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
 
@@ -734,7 +735,7 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
         }

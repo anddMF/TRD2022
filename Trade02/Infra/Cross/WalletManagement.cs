@@ -47,7 +47,7 @@ namespace Trade02.Infra.Cross
 
             if (filePositions.Count > 0)
             {
-                for(int i = 0; i <= filePositions.Count; i++)
+                for(int i = 0; i < filePositions.Count; i++)
                 {
                     Position pos = filePositions[i];
                     AddPositionToFile(pos, currentProfit);

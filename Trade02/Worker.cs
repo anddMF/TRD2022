@@ -58,20 +58,33 @@ namespace Trade02
                 var opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
                 
 
-                Console.WriteLine("----------------- Lista incial capturada ------------------");
+                Console.WriteLine("----------------- Lista inicial capturada ------------------");
                 Console.WriteLine();
+
+                days = true;
+                hours = true;
+                minutes = true;
+
+                foreach (Position pos in openPositions)
+                {
+                    if (pos.Type == RecommendationType.Day)
+                        days = false;
+
+                    if (pos.Type == RecommendationType.Hour)
+                        hours = false;
+
+                    if (pos.Type == RecommendationType.Minute)
+                        minutes = false;
+                }
 
                 while (runner)
                 {
-                    days = true;
-                    hours = true;
-                    minutes = true;
+                    
                     Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}\n");
 
                     // manage positions recebendo as recoendações e operações em aperto
                     var manager = await _portfolioSvc.ManagePosition(opp, openPositions, toMonitor);
 
-                    
                     openPositions = manager.OpenPositions;
 
                     // TODO: na lista de toMonitor preciso considerar qual o type que tem lá e não fazer compras pois ainda está obervando aquele type
@@ -108,12 +121,16 @@ namespace Trade02
                         _logger.LogInformation($"\n\t ###### Lucro maximo atingido ######");
                         runner = false;
                     }
+
+                    days = true;
+                    hours = true;
+                    minutes = true;
                 }
 
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: ExecuteAsync(), message: {ex.Message}");
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: ExecuteAsync(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 throw ex;
             }
 
