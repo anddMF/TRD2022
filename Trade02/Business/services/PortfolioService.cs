@@ -274,8 +274,14 @@ namespace Trade02.Business.services
                         {
                             // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                             //positions[i] = responseSell;
-                            toMonitor.Add(responseSell);
+                            
                             sold.Add(responseSell.Symbol);
+                            int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
+                            if (index > -1)
+                                toMonitor[index] = responseSell;
+                            else
+                                toMonitor.Add(responseSell);
+                            WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit);
                         }
 
                     }
@@ -309,6 +315,8 @@ namespace Trade02.Business.services
                                         toMonitor[index] = responseSell;
                                     else
                                         toMonitor.Add(responseSell);
+
+                                    WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit);
                                 }
                             }
                             else
@@ -344,6 +352,7 @@ namespace Trade02.Business.services
                                 positions.Add(res);
                                 opp.Minutes.Clear();
                                 i = opp.Minutes.Count;
+                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
                             }
                         }
 
@@ -362,6 +371,7 @@ namespace Trade02.Business.services
                                 positions.Add(res);
                                 opp.Days.Clear();
                                 i = opp.Days.Count;
+                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
                             }
                         }
                     }
@@ -379,6 +389,7 @@ namespace Trade02.Business.services
                                 positions.Add(res);
                                 opp.Hours.Clear();
                                 i = opp.Hours.Count;
+                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
                             }
                         }
                     }
