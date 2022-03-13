@@ -62,7 +62,7 @@ namespace Trade02.Infra.Cross
             catch (Exception ex)
             {
                 Console.WriteLine("ERRO ao restaurar posicoes: " + ex.Message);
-                return null;
+                throw ex;
             }
         }
 

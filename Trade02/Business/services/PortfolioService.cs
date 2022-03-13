@@ -215,6 +215,26 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
+        /// Retorna as posições em aberto, caso existam, da última execução interrompida do robô.
+        /// </summary>
+        /// <returns></returns>
+        public List<Position> GetLastPositions()
+        {
+            try
+            {
+                List<Position> positions = WalletManagement.GetPositionFromFile();
+
+                return positions;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetLastPositions(), message: {ex.Message}");
+                return null;
+            }
+
+        }
+
+        /// <summary>
         /// Motor de manipulação das posições em aberto e recomendadas. A partir de certas condições, determina o sell ou hold da posição.
         /// </summary>
         /// <param name="opp">oportunidades de compra</param>
