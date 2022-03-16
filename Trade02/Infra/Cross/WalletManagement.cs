@@ -92,10 +92,9 @@ namespace Trade02.Infra.Cross
         private static Position TransformLineIntoPosition(string line)
         {
             string[] values = line.Split(';');
-            var position = new Position(values[1], Convert.ToDecimal(values[2]), Convert.ToDecimal(values[7]));
+            var position = new Position(values[1], Convert.ToDecimal(values[2]), Convert.ToDecimal(values[7]), ConvertRecType(values[8]));
             position.Valorization = Convert.ToDecimal(values[6]);
             position.LastPrice = Convert.ToDecimal(values[3]);
-            position.Type = ConvertRecType(values[8]);
 
             return position;
         }
