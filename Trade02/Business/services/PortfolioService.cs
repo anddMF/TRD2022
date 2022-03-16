@@ -266,7 +266,7 @@ namespace Trade02.Business.services
                     bool stop = false;
 
                     positions[i].LastPrice = currentPrice;
-                    Console.WriteLine($"\nMANAGE: ticker {positions[i].Symbol}; current val {currentValorization}; last val {positions[i].Valorization}\n");
+                    Console.WriteLine($"\nMANAGE: ticker {positions[i].Symbol}-{positions[i].Type}; current val {currentValorization}; last val {positions[i].Valorization}\n");
                     if (currentValorization <= 0)
                     {
                         var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
