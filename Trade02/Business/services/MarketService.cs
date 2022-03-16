@@ -284,7 +284,7 @@ namespace Trade02.Business.services
             int flags = 0;
             bool avg = false;
 
-            // maybe already dicard the ones tha had yesterday on a lower high than today
+            // maybe already dicard the ones that had yesterday on a lower 'high' than today
             // identifica uma oportunidade de uma moeda que está renovando suas máximas consequentemente. 
             // o i < klines.Count pode ser Count - 1 se o teste for feito de manhã, mas deixa .Count se for a noite
             for (int i = 0; i < klines.Count ; i++)
@@ -323,6 +323,11 @@ namespace Trade02.Business.services
             return avg;
         }
 
+        /// <summary>
+        /// Verifica se a MA (média móvel) mais curta está, pelo menos, 1% acima da MA mais longa. Caso esteja, retorna true, do contrário, retorna false.
+        /// </summary>
+        /// <param name="klines"></param>
+        /// <returns></returns>
         public bool SuperiorMovingAverage(List<IBinanceKline> klines)
         {
             decimal avg1 = CalculateMovingAverage(5, klines);
