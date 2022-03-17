@@ -8,6 +8,7 @@ namespace Trade02.Models.CrossCutting
     {
         public static ApiConfiguration ApiConfiguration { get; set; }
         public static TradeConfiguration TradeConfiguration { get; set; }
+        public static EngineConfiguration EngineConfiguration { get; set; }
 
         public static ApiConfiguration GetAPiConfiguration()
         {
@@ -16,6 +17,10 @@ namespace Trade02.Models.CrossCutting
         public static TradeConfiguration GetTradeConfiguration()
         {
             return TradeConfiguration;
+        }
+        public static EngineConfiguration GetEngineConfiguration()
+        {
+            return EngineConfiguration;
         }
     }
 
@@ -39,5 +44,12 @@ namespace Trade02.Models.CrossCutting
         public decimal MaxProfit { get; set; }
         public decimal SellPercentage { get; set; }
         public List<string> OwnedSymbols { get; set; }
+    }
+    
+    public class EngineConfiguration
+    {
+        public bool Day { get; set; }
+        public bool Hour { get; set; }
+        public bool Minute { get; set; }
     }
 }

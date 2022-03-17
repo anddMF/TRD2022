@@ -156,85 +156,6 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Executa a venda a partir de um motor de decisão.
-        /// </summary>
-        /// <param name="symbol"></param>
-        /// <param name="quantity"></param>
-        /// <returns></returns>
-        public async Task<BinancePlacedOrder> ExecuteSellOrder(string symbol, decimal quantity)
-        {
-            Console.WriteLine("#### Entrou VENDA");
-            decimal prevPrice = 0;
-            int j = 0;
-
-            while (j < 5)
-            {
-                await Task.Delay(2000);
-                var market = await _clientSvc.GetTicker(symbol);
-                decimal price = market.AskPrice;
-                Console.WriteLine($"Preco {symbol}: {price}");
-
-                if (j > 0 && price > prevPrice)
-                {
-                    Console.WriteLine("\n Caiu venda SUBINDO\n");
-                    // debug comm
-                    var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
-
-                    //debug rem
-                    //var order = new BinancePlacedOrder();
-                    //order.Price = market.AskPrice;
-                    //order.Quantity = quantity;
-                    //
-
-                    if (order == null)
-                        _logger.LogError($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
-                    else
-                        return order;
-                }
-
-                prevPrice = price;
-                j++;
-            }
-
-            Console.WriteLine("\n Caiu venda FINAL\n");
-            // debug comm
-            var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
-
-            //debug rem
-            //var mark = await _clientSvc.GetTicker(symbol);
-            //var final = new BinancePlacedOrder();
-            //final.Price = mark.AskPrice;
-            //final.Quantity = quantity;
-            //
-            if (final == null)
-                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
-            else
-                return final;
-
-            return null;
-        }
-
-        /// <summary>
-        /// Retorna as posições em aberto, caso existam, da última execução interrompida do robô.
-        /// </summary>
-        /// <returns></returns>
-        public List<Position> GetLastPositions()
-        {
-            try
-            {
-                List<Position> positions = WalletManagement.GetPositionFromFile();
-
-                return positions;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
-                return null;
-            }
-
-        }
-
-        /// <summary>
         /// Motor de manipulação das posições em aberto e recomendadas. A partir de certas condições, determina o sell ou hold da posição.
         /// </summary>
         /// <param name="opp">oportunidades de compra</param>
@@ -249,7 +170,7 @@ namespace Trade02.Business.services
 
             // se já tiver passado do cap de profit, ele diminuiu o sellPercentage para poder sair mais rápido das posições em aberto
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
-                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.2;
+                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.1;
             else
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.7;
 
@@ -337,7 +258,7 @@ namespace Trade02.Business.services
                 foreach (var obj in sold)
                     positions.RemoveAll(x => x.Symbol == obj);
 
-                // compras
+                // compras são executadas se o profit atual está abaixo do max e se o motor de recomendação possui posições nas listas.
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
                 {
                     for (int i = 0; i < opp.Minutes.Count; i++)
@@ -405,6 +326,87 @@ namespace Trade02.Business.services
             }
         }
 
+
+        /// <summary>
+        /// Executa a venda a partir de um motor de decisão.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="quantity"></param>
+        /// <returns></returns>
+        public async Task<BinancePlacedOrder> ExecuteSellOrder(string symbol, decimal quantity)
+        {
+            Console.WriteLine("#### Entrou VENDA");
+            decimal prevPrice = 0;
+            int j = 0;
+
+            while (j < 5)
+            {
+                await Task.Delay(2000);
+                var market = await _clientSvc.GetTicker(symbol);
+                decimal price = market.AskPrice;
+                Console.WriteLine($"Preco {symbol}: {price}");
+
+                if (j > 0 && price > prevPrice)
+                {
+                    Console.WriteLine("\n Caiu venda SUBINDO\n");
+                    // debug comm
+                    var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
+
+                    //debug rem
+                    //var order = new BinancePlacedOrder();
+                    //order.Price = market.AskPrice;
+                    //order.Quantity = quantity;
+                    //
+
+                    if (order == null)
+                        _logger.LogError($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                    else
+                        return order;
+                }
+
+                prevPrice = price;
+                j++;
+            }
+
+            Console.WriteLine("\n Caiu venda FINAL\n");
+            // debug comm
+            var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
+
+            //debug rem
+            //var mark = await _clientSvc.GetTicker(symbol);
+            //var final = new BinancePlacedOrder();
+            //final.Price = mark.AskPrice;
+            //final.Quantity = quantity;
+            //
+            if (final == null)
+                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+            else
+                return final;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Retorna as posições em aberto, caso existam, da última execução interrompida do robô.
+        /// </summary>
+        /// <returns></returns>
+        public List<Position> GetLastPositions()
+        {
+            try
+            {
+                List<Position> positions = WalletManagement.GetPositionFromFile();
+
+                return positions;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
+                return null;
+            }
+
+        }
+
+        
         /// <summary>
         /// Faz a validação se vale ou não a pena vender o ativo, caso sim, determina o momento a partir de certas validações e executa.
         /// </summary>

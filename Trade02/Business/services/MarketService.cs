@@ -24,6 +24,10 @@ namespace Trade02.Business.services
 
         private readonly int daysToAnalyze = AppSettings.TradeConfiguration.DaysToAnalyze + 1;
 
+        private readonly bool dayConfig = AppSettings.EngineConfiguration.Day;
+        private readonly bool hourConfig = AppSettings.EngineConfiguration.Hour;
+        private readonly bool minuteConfig = AppSettings.EngineConfiguration.Minute;
+
         public MarketService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
         {
             _logger = logger;
@@ -176,7 +180,7 @@ namespace Trade02.Business.services
             List<IBinanceTick> minutesList = new List<IBinanceTick>();
 
             // o filtro do dia pega so de ontem, entao a moeda pode estar em queda hoje que ele nao vai pegar
-            if (days)
+            if (days && dayConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
@@ -192,7 +196,7 @@ namespace Trade02.Business.services
             }
 
 
-            if (hours)
+            if (hours && hourConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
@@ -208,12 +212,12 @@ namespace Trade02.Business.services
             }
 
 
-            if (minutes)
+            if (minutes && minuteConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
                     var current = currentMarket[i];
-                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.FifteenMinutes, 3);
+                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneMinute, 3);
 
                     if (opportunity && !alreadyUsed.Contains(current.Symbol))
                     {
@@ -234,13 +238,13 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public OpportunitiesResponse RepurchaseValidation(OpportunitiesResponse opp, List<Position> assetList)
         {
-            var dayList = assetList.FindAll(x => x.Type == RecommendationType.Day);
-            var hourList = assetList.FindAll(x => x.Type == RecommendationType.Hour);
-            var minuteList = assetList.FindAll(x => x.Type == RecommendationType.Minute);
+            //var dayList = assetList.FindAll(x => x.Type == RecommendationType.Day);
+            //var hourList = assetList.FindAll(x => x.Type == RecommendationType.Hour);
+            //var minuteList = assetList.FindAll(x => x.Type == RecommendationType.Minute);
 
-            opp.Days = RepurchasePercentageValidation(opp.Days, dayList);
-            opp.Hours = RepurchasePercentageValidation(opp.Hours, hourList);
-            opp.Minutes = RepurchasePercentageValidation(opp.Minutes, minuteList);
+            opp.Days = RepurchasePercentageValidation(opp.Days, assetList);
+            opp.Hours = RepurchasePercentageValidation(opp.Hours, assetList);
+            opp.Minutes = RepurchasePercentageValidation(opp.Minutes, assetList);
 
             return opp;
         }
@@ -318,9 +322,10 @@ namespace Trade02.Business.services
             }
 
             // se chegou até aqui é porque ainda é valido
-            avg = SuperiorMovingAverage(ogKlines);
+            //avg = SuperiorMovingAverage(ogKlines);
 
-            return avg;
+            //return avg;
+            return true;
         }
 
         /// <summary>

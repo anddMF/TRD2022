@@ -58,13 +58,13 @@ namespace Trade02
                 var opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
                 
 
-                Console.WriteLine("----------------- Lista inicial capturada ------------------");
-                Console.WriteLine();
+                Console.WriteLine("----------------- Lista inicial capturada ------------------\n");
 
                 days = true;
                 hours = true;
                 minutes = true;
 
+                // esse loop está aqui por conta do retorno que vem no wallet
                 foreach (Position pos in openPositions)
                 {
                     if (pos.Type == RecommendationType.Day)
