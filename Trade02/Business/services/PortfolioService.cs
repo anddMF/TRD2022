@@ -38,7 +38,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Motor de manipulação das posições em aberto. A partir de certas condições, determina o sell ou hold da posição.
+        /// / DEPRECATED / Motor de manipulação das posições em aberto. A partir de certas condições, determina o sell ou hold da posição.
         /// </summary>
         /// <param name="openPositions">posições em aberto</param>
         /// <param name="previousData">dados que estão sendo monitorados, usado somente para Add de moedas a serem monitoradas</param>
@@ -80,7 +80,7 @@ namespace Trade02.Business.services
                             openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
 
                             _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
-
+                            
                             ReportLog.WriteReport(logType.VENDA, openPositions[i]);
                         }
                     }
@@ -174,7 +174,7 @@ namespace Trade02.Business.services
             else
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.7;
 
-            Console.WriteLine($"SELL PERCENTAGE: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}");
+            Console.WriteLine($"SELL perc: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT perc: {AppSettings.TradeConfiguration.CurrentProfit}, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             try
             {
                 for (int i = 0; i < positions.Count; i++)
@@ -203,7 +203,7 @@ namespace Trade02.Business.services
                             else
                                 toMonitor.Add(responseSell);
 
-                            WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit);
+                            WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                         }
 
                     }
@@ -238,7 +238,7 @@ namespace Trade02.Business.services
                                     else
                                         toMonitor.Add(responseSell);
 
-                                    WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit);
+                                    WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                                 }
                             }
                             else
@@ -274,7 +274,7 @@ namespace Trade02.Business.services
                                 positions.Add(res);
                                 opp.Minutes.Clear();
                                 i = positions.Count < maxOpenPositions ? i : opp.Minutes.Count;
-                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
+                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
 
@@ -293,7 +293,7 @@ namespace Trade02.Business.services
                                 positions.Add(res);
                                 opp.Days.Clear();
                                 i = opp.Days.Count;
-                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
+                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
                     }
@@ -311,7 +311,7 @@ namespace Trade02.Business.services
                                 positions.Add(res);
                                 opp.Hours.Clear();
                                 i = opp.Hours.Count;
-                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
+                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
                     }
@@ -454,6 +454,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += order.Price - position.InitialPrice;
 
                     return position;
                 }
@@ -475,6 +476,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += order.Price - position.InitialPrice;
                     return position;
                 }
                 return null;

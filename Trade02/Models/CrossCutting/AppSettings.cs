@@ -40,6 +40,7 @@ namespace Trade02.Models.CrossCutting
         public decimal MaxSearchPercentage { get; set; }
         public int MaxOpenPositions { get; set; }
         public int DaysToAnalyze { get; set; }
+        public decimal CurrentUSDTProfit { get; set; }
         public decimal CurrentProfit { get; set; }
         public decimal MaxProfit { get; set; }
         public decimal SellPercentage { get; set; }

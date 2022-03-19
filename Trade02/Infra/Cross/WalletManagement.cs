@@ -11,7 +11,7 @@ namespace Trade02.Infra.Cross
     {
         private static readonly string pathFolder = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\WALLET");
         private static readonly string filePath = $"{pathFolder}\\positions.csv";
-        public static bool AddPositionToFile(Position position, decimal currentProfit)
+        public static bool AddPositionToFile(Position position, decimal currentProfit, decimal currentUSDTProfit)
         {
             try
             {
@@ -20,13 +20,13 @@ namespace Trade02.Infra.Cross
 
                 if (!File.Exists(filePath))
                 {
-                    CreateFile(position, currentProfit, filePath);
+                    CreateFile(position, currentProfit, currentUSDTProfit, filePath);
                 }
                 else
                 {
                     using (StreamWriter sw = File.AppendText(filePath))
                     {
-                        sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit};");
+                        sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit}; {currentUSDTProfit}");
                     }
                 }
                 return true;
@@ -38,7 +38,7 @@ namespace Trade02.Infra.Cross
             }
         }
 
-        public static bool RemovePositionFromFile(string symbol, decimal currentProfit)
+        public static bool RemovePositionFromFile(string symbol, decimal currentProfit, decimal currentUSDTProfit)
         {
             var filePositions = GetPositionFromFile();
             filePositions = filePositions.FindAll(x => x.Symbol != symbol);
@@ -50,19 +50,19 @@ namespace Trade02.Infra.Cross
                 for(int i = 0; i < filePositions.Count; i++)
                 {
                     Position pos = filePositions[i];
-                    AddPositionToFile(pos, currentProfit);
+                    AddPositionToFile(pos, currentProfit, currentUSDTProfit);
                 }
             }
 
             return false;
         }
 
-        private static void CreateFile(Position position, decimal currentProfit, string filepath)
+        private static void CreateFile(Position position, decimal currentProfit, decimal currentUSDTProfit, string filepath)
         {
             using (StreamWriter sw = File.CreateText(filepath))
             {
-                sw.WriteLine($"DATE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;QUANTITY;REC TYPE;CURRENT VALORIZATION;");
-                sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit};");
+                sw.WriteLine($"DATE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;QUANTITY;REC TYPE;CURRENT VAL; CURRENT USDT VAL");
+                sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit}; {currentUSDTProfit}");
             }
         }
 
