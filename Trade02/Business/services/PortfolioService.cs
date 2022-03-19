@@ -21,138 +21,27 @@ namespace Trade02.Business.services
     /// </summary>
     public class PortfolioService
     {
+        #region setup variables
         private static APICommunication _clientSvc;
         private static MarketService _marketSvc;
         private readonly ILogger<Worker> _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
-        private readonly int maxPositionMinutes = AppSettings.TradeConfiguration.MaxPositionMinutes;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
         private readonly int minUSDT = 15;
+
+        private int openDayPositions = 0;
+        private int openHourPositions = 0;
+        private int openMinutePositions = 0;
+        #endregion
 
         public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);
             _marketSvc = new MarketService(clientFactory, logger);
-        }
 
-        /// <summary>
-        /// / DEPRECATED / Motor de manipulação das posições em aberto. A partir de certas condições, determina o sell ou hold da posição.
-        /// </summary>
-        /// <param name="openPositions">posições em aberto</param>
-        /// <param name="previousData">dados que estão sendo monitorados, usado somente para Add de moedas a serem monitoradas</param>
-        /// <returns>lista de posições ainda em aberto</returns>
-        public async Task<PortfolioResponse> ManageOpenPositions(List<Position> openPositions, List<IBinanceTick> previousData)
-        {
-            // lista que será retornada com as posições que foram mantidas em aberto
-            List<Position> result = new List<Position>();
-            try
-            {
-                // SE O TICKER DE MINUTO FOR X E O TOTALVALORIZATION < 1, VENDE
-                Console.WriteLine($"----###### MANAGE: posicoes {openPositions.Count}");
-                for (int i = 0; i < openPositions.Count; i++)
-                {
-                    Position currentPosition = openPositions[i];
-                    var marketPosition = await _marketSvc.GetSingleTicker(currentPosition.Symbol);
-                    // -0.01 adicionado para o preço de venda ter menos chance de não ser executado
-                    openPositions[i].LastValue = (marketPosition.AskPrice * openPositions[i].Quantity) - (decimal)0.01;
-
-                    openPositions[i].Minutes++;
-
-                    decimal currentValorization = ((marketPosition.AskPrice - currentPosition.LastMaxPrice) / currentPosition.LastMaxPrice) * 100;
-                    decimal totalValorization = ((marketPosition.AskPrice - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
-
-                    Console.WriteLine($"-------##### POSICAO> {currentPosition.Symbol}, val: {totalValorization}, cur val: {currentValorization}, wei: {currentPosition.Data.WeightedAveragePrice}");
-
-                    openPositions[i].LastMaxPrice = Math.Max(marketPosition.AskPrice, currentPosition.LastMaxPrice);
-
-                    // não ficar muito tempo com uma moeda andando de lado na carteira
-                    if (maxPositionMinutes > 0 && openPositions[i].Minutes >= maxPositionMinutes && totalValorization < 1)
-                    {
-                        Console.WriteLine("Caiu validacao do tempo");
-                        var order = await _marketSvc.PlaceSellOrder(currentPosition.Symbol, currentPosition.Quantity);
-
-                        if (order != null)
-                        {
-                            openPositions[i].LastPrice = order.Price;
-                            openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
-                            openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
-
-                            _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
-                            
-                            ReportLog.WriteReport(logType.VENDA, openPositions[i]);
-                        }
-                    }
-                    // Valida a variação da moeda para vender se enxergar uma tendencia de queda (a partir do preço atual) ou uma valorização TOTAL negativa da moeda.
-                    // Caso tenha uma valorização positiva, atualiza os dados no open position e não executa a venda
-                    else if (currentValorization > 0)
-                    {
-                        //Console.WriteLine($"\n############## Manage: ticker {openPositions[i].Symbol}, valorizado em {totalValorization}, current {currentValorization}");
-
-                        openPositions[i].LastPrice = marketPosition.AskPrice;
-                        openPositions[i].LastValue = marketPosition.AskPrice * openPositions[i].Quantity;
-                        openPositions[i].Valorization = totalValorization;
-                        result.Add(currentPosition);
-                    }
-                    else
-                    {
-                        // colocar uma validacao teste pra se já tiver 1% de lucro, diminuir esse numero negativo para a venda, assim realiza pelo menos o 1%
-                        // se eu acabei de vim de uma subida de masi de 1% e meu lucro esta acima de 1%, low level >= 0
-                        decimal lowLevel = totalValorization >= (decimal)1 ? (decimal)-0.1 : (decimal)-0.3;
-                        if (totalValorization <= (decimal)-0.2)
-                        {
-                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Symbol, currentPosition.Quantity);
-
-                            if (order != null)
-                            {
-                                // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                                //previousData.Add(marketPosition);
-
-                                openPositions[i].LastPrice = order.Price;
-                                openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
-                                openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
-
-                                _logger.LogInformation($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
-
-                                ReportLog.WriteReport(logType.VENDA, openPositions[i]);
-                            }
-
-                        }
-                        else if (currentValorization <= lowLevel)
-                        {
-                            Console.WriteLine("\n----- venda low level");
-                            var order = await _marketSvc.PlaceSellOrder(currentPosition.Symbol, currentPosition.Quantity);
-
-                            if (order != null)
-                            {
-                                // retorna a moeda para o previous para continuar acompanhando caso seja uma queda de mercado
-                                if (totalValorization > 0)
-                                    previousData.Add(marketPosition);
-
-                                openPositions[i].LastPrice = order.Price;
-                                openPositions[i].LastValue = order.Price * openPositions[i].Quantity;
-                                openPositions[i].Valorization = ((order.Price - currentPosition.InitialPrice) / currentPosition.InitialPrice) * 100;
-
-                                _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {openPositions[i].Symbol}, total valorization: {openPositions[i].Valorization}, current price: {marketPosition.AskPrice}, initial: {openPositions[i].InitialPrice}");
-
-                                ReportLog.WriteReport(logType.VENDA, openPositions[i]);
-                            }
-                        }
-                        else
-                        {
-                            result.Add(currentPosition);
-                        }
-                    }
-                }
-
-                return new PortfolioResponse(previousData, result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
-                return null;
-            }
+            MaxPositionsPerType();
         }
 
         /// <summary>
@@ -164,6 +53,7 @@ namespace Trade02.Business.services
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
             HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
+            UpdateOpenPositionsPerType(positions);
 
             int stopCounter = 0;
             var sold = new List<string>();
@@ -177,12 +67,13 @@ namespace Trade02.Business.services
             Console.WriteLine($"SELL perc: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT perc: {AppSettings.TradeConfiguration.CurrentProfit}, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             try
             {
+                #region manage open positions
                 for (int i = 0; i < positions.Count; i++)
                 {
                     var market = await _clientSvc.GetTicker(positions[i].Symbol);
                     decimal currentPrice = market.AskPrice;
 
-                    decimal currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
+                    decimal currentValorization = ValorizationCalculation(positions[i].LastPrice, currentPrice);
 
                     bool stop = false;
 
@@ -193,10 +84,8 @@ namespace Trade02.Business.services
                         var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
                         if (responseSell != null)
                         {
-                            // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
-                            //positions[i] = responseSell;
-
                             sold.Add(responseSell.Symbol);
+
                             int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
                             if (index > -1)
                                 toMonitor[index] = responseSell;
@@ -205,22 +94,19 @@ namespace Trade02.Business.services
 
                             WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                         }
-
                     }
                     else
                     {
-                        // se essa moeda tiver renovando maximas acima de 0%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
-
                         while (!stop)
                         {
                             await Task.Delay(2000);
                             market = await _clientSvc.GetTicker(positions[i].Symbol);
                             currentPrice = market.AskPrice;
-                            currentValorization = ((currentPrice - positions[i].LastPrice) / positions[i].LastPrice) * 100;
-                            positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
+
+                            currentValorization = ValorizationCalculation(positions[i].LastPrice, currentPrice);
+                            positions[i].Valorization = ValorizationCalculation(positions[i].InitialPrice, currentPrice);
                             Console.WriteLine("valorizacao somada: " + positions[i].Valorization);
 
-                            // TODO: falta uma validação usando o total valorization
                             if (positions[i].Valorization >= AppSettings.TradeConfiguration.SellPercentage)
                             {
                                 Console.WriteLine("Current valorization");
@@ -243,25 +129,26 @@ namespace Trade02.Business.services
                             }
                             else
                             {
-                                Console.WriteLine("else do current valorization");
                                 positions[i].LastPrice = currentPrice;
                                 stopCounter++;
-                                if (stopCounter >= 3)
+                                if (stopCounter >= 4)
                                     stop = true;
                             }
                         }
                     }
 
-                    positions[i].Valorization = ((currentPrice - positions[i].InitialPrice) / positions[i].InitialPrice) * 100;
+                    positions[i].Valorization = ValorizationCalculation(positions[i].InitialPrice, currentPrice);
                 }
 
                 foreach (var obj in sold)
                     positions.RemoveAll(x => x.Symbol == obj);
+                #endregion
 
-                // compras são executadas se o profit atual está abaixo do max e se o motor de recomendação possui posições nas listas.
+                #region enter new positions
+
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
-                    for (int i = 0; i < opp.Minutes.Count; i++)
+                    for (int i = 0; i < opp.Minutes.Count && openMinutePositions < AppSettings.EngineConfiguration.MaxMinutePositions && positions.Count < maxOpenPositions; i++)
                     {
                         if (!alreadyUsed.Contains(opp.Minutes[i].Symbol))
                         {
@@ -270,17 +157,17 @@ namespace Trade02.Business.services
                             {
                                 alreadyUsed.Add(opp.Minutes[i].Symbol);
 
+                                openMinutePositions++;
+
                                 res.Risk = -1;
                                 positions.Add(res);
-                                opp.Minutes.Clear();
-                                i = positions.Count < maxOpenPositions ? i : opp.Minutes.Count;
+
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
-
                     }
 
-                    for (int i = 0; i < opp.Days.Count; i++)
+                    for (int i = 0; i < opp.Days.Count && openDayPositions < AppSettings.EngineConfiguration.MaxDayPositions && positions.Count < maxOpenPositions; i++)
                     {
                         if (!alreadyUsed.Contains(opp.Days[i].Symbol))
                         {
@@ -289,16 +176,17 @@ namespace Trade02.Business.services
                             {
                                 alreadyUsed.Add(opp.Days[i].Symbol);
 
+                                openDayPositions++;
+
                                 res.Risk = -3;
                                 positions.Add(res);
-                                opp.Days.Clear();
-                                i = opp.Days.Count;
+
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
                     }
 
-                    for (int i = 0; i < opp.Hours.Count; i++)
+                    for (int i = 0; i < opp.Hours.Count && openHourPositions < AppSettings.EngineConfiguration.MaxHourPositions && positions.Count < maxOpenPositions; i++)
                     {
                         if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
                         {
@@ -307,16 +195,17 @@ namespace Trade02.Business.services
                             {
                                 alreadyUsed.Add(opp.Hours[i].Symbol);
 
+                                openHourPositions++;
+
                                 res.Risk = -2;
                                 positions.Add(res);
-                                opp.Hours.Clear();
-                                i = opp.Hours.Count;
+
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
                     }
                 }
-
+                #endregion
                 return new ManagerResponse(opp, positions, toMonitor);
             }
             catch (Exception ex)
@@ -326,6 +215,56 @@ namespace Trade02.Business.services
             }
         }
 
+        /// <summary>
+        /// Calculate
+        /// </summary>
+        private void MaxPositionsPerType()
+        {
+            int maxOpenRunner = maxOpenPositions;
+            while (maxOpenRunner > 0)
+            {
+                if (AppSettings.EngineConfiguration.Minute)
+                {
+                    AppSettings.EngineConfiguration.MaxMinutePositions += 1;
+                    maxOpenRunner--;
+                }
+                if (AppSettings.EngineConfiguration.Hour && maxOpenRunner > 0)
+                {
+                    AppSettings.EngineConfiguration.MaxHourPositions += 1;
+                    maxOpenRunner--;
+                }
+                if (AppSettings.EngineConfiguration.Day && maxOpenRunner > 0)
+                {
+                    AppSettings.EngineConfiguration.MaxDayPositions += 1;
+                    maxOpenRunner--;
+                }
+            }
+        }
+
+        private void UpdateOpenPositionsPerType(List<Position> positions)
+        {
+            openDayPositions = 0;
+            openHourPositions = 0;
+            openMinutePositions = 0;
+
+            for (int i = 0; i < positions.Count; i++)
+            {
+                var current = positions[i];
+
+                switch (current.Type)
+                {
+                    case RecommendationType.Day:
+                        openDayPositions++;
+                        break;
+                    case RecommendationType.Hour:
+                        openHourPositions++;
+                        break;
+                    case RecommendationType.Minute:
+                        openMinutePositions++;
+                        break;
+                }
+            }
+        }
 
         /// <summary>
         /// Executa a venda a partir de um motor de decisão.
@@ -406,7 +345,7 @@ namespace Trade02.Business.services
 
         }
 
-        
+
         /// <summary>
         /// Faz a validação se vale ou não a pena vender o ativo, caso sim, determina o momento a partir de certas validações e executa.
         /// </summary>
@@ -448,13 +387,13 @@ namespace Trade02.Business.services
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
-                    position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                    position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
                     _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += order.Price - position.InitialPrice;
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (order.Price - position.InitialPrice);
 
                     return position;
                 }
@@ -470,13 +409,13 @@ namespace Trade02.Business.services
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
-                    position.Valorization = ((order.Price - position.InitialPrice) / position.InitialPrice) * 100;
+                    position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
                     _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += order.Price - position.InitialPrice;
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (order.Price - position.InitialPrice);
                     return position;
                 }
                 return null;
@@ -726,6 +665,11 @@ namespace Trade02.Business.services
                 return null;
             }
 
+        }
+
+        public decimal ValorizationCalculation(decimal basePrice, decimal currentPrice)
+        {
+            return ((currentPrice - basePrice) / basePrice) * 100;
         }
 
         public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
