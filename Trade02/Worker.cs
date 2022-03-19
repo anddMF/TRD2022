@@ -65,17 +65,17 @@ namespace Trade02
                 minutes = true;
 
                 // esse loop está aqui por conta do retorno que vem no wallet
-                foreach (Position pos in openPositions)
-                {
-                    if (pos.Type == RecommendationType.Day)
-                        days = false;
+                //foreach (Position pos in openPositions)
+                //{
+                //    if (pos.Type == RecommendationType.Day)
+                //        days = false;
 
-                    if (pos.Type == RecommendationType.Hour)
-                        hours = false;
+                //    if (pos.Type == RecommendationType.Hour)
+                //        hours = false;
 
-                    if (pos.Type == RecommendationType.Minute)
-                        minutes = false;
-                }
+                //    if (pos.Type == RecommendationType.Minute)
+                //        minutes = false;
+                //}
 
                 while (runner)
                 {
@@ -87,21 +87,20 @@ namespace Trade02
 
                     openPositions = manager.OpenPositions;
 
-                    // TODO: na lista de toMonitor preciso considerar qual o type que tem lá e não fazer compras pois ainda está obervando aquele type
-                    // caso ainda tenha recomendação não executada, chama opp by klines com as que faltam
-                    foreach (Position pos in openPositions)
-                    {
-                        if (pos.Type == RecommendationType.Day)
-                            days = false;
+                    // esse controle do balanço da carteira tem que estar no managePortfolio
+                    //foreach (Position pos in openPositions)
+                    //{
+                    //    if (pos.Type == RecommendationType.Day)
+                    //        days = false;
 
-                        if (pos.Type == RecommendationType.Hour)
-                            hours = false;
+                    //    if (pos.Type == RecommendationType.Hour)
+                    //        hours = false;
 
-                        if (pos.Type == RecommendationType.Minute)
-                            minutes = false;
-                    }
+                    //    if (pos.Type == RecommendationType.Minute)
+                    //        minutes = false;
+                    //}
                     //opp = manager.Opportunities;
-                    // cruzar as listas de recomendação com o toMonitor e validar o valor, se não estiver acima do valor de saída, tira da recomendação
+
                     toMonitor = manager.ToMonitor;
 
                     // colocado aqui para não ter o delay entre a recomendação e o managePosition

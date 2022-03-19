@@ -259,7 +259,7 @@ namespace Trade02.Business.services
                     positions.RemoveAll(x => x.Symbol == obj);
 
                 // compras são executadas se o profit atual está abaixo do max e se o motor de recomendação possui posições nas listas.
-                if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
+                if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
                     for (int i = 0; i < opp.Minutes.Count; i++)
                     {
@@ -273,7 +273,7 @@ namespace Trade02.Business.services
                                 res.Risk = -1;
                                 positions.Add(res);
                                 opp.Minutes.Clear();
-                                i = opp.Minutes.Count;
+                                i = positions.Count < maxOpenPositions ? i : opp.Minutes.Count;
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit);
                             }
                         }
@@ -339,7 +339,7 @@ namespace Trade02.Business.services
             decimal prevPrice = 0;
             int j = 0;
 
-            while (j < 5)
+            while (j < 4)
             {
                 await Task.Delay(2000);
                 var market = await _clientSvc.GetTicker(symbol);
