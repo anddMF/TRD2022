@@ -60,22 +60,11 @@ namespace Trade02
 
                 Console.WriteLine("----------------- Lista inicial capturada ------------------\n");
 
+                // TODO: avaliar um jeito para desligar as recomendações que já estão cheias, diminuindo, assim, processamento e tempo
                 days = true;
                 hours = true;
                 minutes = true;
 
-                // esse loop está aqui por conta do retorno que vem no wallet
-                //foreach (Position pos in openPositions)
-                //{
-                //    if (pos.Type == RecommendationType.Day)
-                //        days = false;
-
-                //    if (pos.Type == RecommendationType.Hour)
-                //        hours = false;
-
-                //    if (pos.Type == RecommendationType.Minute)
-                //        minutes = false;
-                //}
 
                 while (runner)
                 {
@@ -86,21 +75,6 @@ namespace Trade02
                     var manager = await _portfolioSvc.ManagePosition(opp, openPositions, toMonitor);
 
                     openPositions = manager.OpenPositions;
-
-                    // esse controle do balanço da carteira tem que estar no managePortfolio
-                    //foreach (Position pos in openPositions)
-                    //{
-                    //    if (pos.Type == RecommendationType.Day)
-                    //        days = false;
-
-                    //    if (pos.Type == RecommendationType.Hour)
-                    //        hours = false;
-
-                    //    if (pos.Type == RecommendationType.Minute)
-                    //        minutes = false;
-                    //}
-                    //opp = manager.Opportunities;
-
                     toMonitor = manager.ToMonitor;
 
                     // colocado aqui para não ter o delay entre a recomendação e o managePosition
@@ -108,10 +82,11 @@ namespace Trade02
 
                     if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
                     {
-                        if (!days && !hours && !minutes)
+                        if (openPositions.Count >= maxOpenPositions)
                             _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n");
                         else
                         {
+                            // TODO: avaliar um jeito para desligar as recomendações que já estão cheias, diminuindo, assim, processamento e tempo
                             opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
                             if (toMonitor.Count > 0)
                                 opp = _marketSvc.RepurchaseValidation(opp, toMonitor);
@@ -120,10 +95,6 @@ namespace Trade02
                         _logger.LogInformation($"\n\t ###### Lucro maximo atingido ######");
                         runner = false;
                     }
-
-                    days = true;
-                    hours = true;
-                    minutes = true;
                 }
 
             }
@@ -131,12 +102,6 @@ namespace Trade02
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: ExecuteAsync(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 throw ex;
-            }
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                await Task.Delay(1000, stoppingToken);
             }
         }
     }

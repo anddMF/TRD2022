@@ -21,20 +21,27 @@ namespace Trade02.Business.services
     /// </summary>
     public class PortfolioService
     {
+        #region setup variables
         private static APICommunication _clientSvc;
         private static MarketService _marketSvc;
         private readonly ILogger<Worker> _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
-        private readonly int maxPositionMinutes = AppSettings.TradeConfiguration.MaxPositionMinutes;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
         private readonly int minUSDT = 15;
+
+        private int openDayPositions = 0;
+        private int openHourPositions = 0;
+        private int openMinutePositions = 0;
+        #endregion
 
         public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);
             _marketSvc = new MarketService(clientFactory, logger);
+
+            MaxPositionsPerType();
         }
 
         /// <summary>
@@ -46,6 +53,7 @@ namespace Trade02.Business.services
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
             HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
+            UpdateOpenPositionsPerType(positions);
 
             int stopCounter = 0;
             var sold = new List<string>();
@@ -59,6 +67,7 @@ namespace Trade02.Business.services
             Console.WriteLine($"SELL perc: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT perc: {AppSettings.TradeConfiguration.CurrentProfit}, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             try
             {
+                #region manage open positions
                 for (int i = 0; i < positions.Count; i++)
                 {
                     var market = await _clientSvc.GetTicker(positions[i].Symbol);
@@ -75,10 +84,8 @@ namespace Trade02.Business.services
                         var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
                         if (responseSell != null)
                         {
-                            // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
-                            //positions[i] = responseSell;
-
                             sold.Add(responseSell.Symbol);
+
                             int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
                             if (index > -1)
                                 toMonitor[index] = responseSell;
@@ -90,18 +97,16 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        // se essa moeda tiver renovando maximas acima de 0%, ficar nela até parar de renovar para poder pegar um lucro bom. depois vende
-
                         while (!stop)
                         {
                             await Task.Delay(2000);
                             market = await _clientSvc.GetTicker(positions[i].Symbol);
                             currentPrice = market.AskPrice;
+
                             currentValorization = ValorizationCalculation(positions[i].LastPrice, currentPrice);
                             positions[i].Valorization = ValorizationCalculation(positions[i].InitialPrice, currentPrice);
                             Console.WriteLine("valorizacao somada: " + positions[i].Valorization);
 
-                            // TODO: falta uma validação usando o total valorization
                             if (positions[i].Valorization >= AppSettings.TradeConfiguration.SellPercentage)
                             {
                                 Console.WriteLine("Current valorization");
@@ -124,10 +129,9 @@ namespace Trade02.Business.services
                             }
                             else
                             {
-                                Console.WriteLine("else do current valorization");
                                 positions[i].LastPrice = currentPrice;
                                 stopCounter++;
-                                if (stopCounter >= 3)
+                                if (stopCounter >= 4)
                                     stop = true;
                             }
                         }
@@ -138,11 +142,13 @@ namespace Trade02.Business.services
 
                 foreach (var obj in sold)
                     positions.RemoveAll(x => x.Symbol == obj);
+                #endregion
 
-                // compras são executadas se o profit atual está abaixo do max e se o motor de recomendação possui posições nas listas.
+                #region enter new positions
+
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
-                    for (int i = 0; i < opp.Minutes.Count; i++)
+                    for (int i = 0; i < opp.Minutes.Count && openMinutePositions < AppSettings.EngineConfiguration.MaxMinutePositions && positions.Count < maxOpenPositions; i++)
                     {
                         if (!alreadyUsed.Contains(opp.Minutes[i].Symbol))
                         {
@@ -151,17 +157,17 @@ namespace Trade02.Business.services
                             {
                                 alreadyUsed.Add(opp.Minutes[i].Symbol);
 
+                                openMinutePositions++;
+
                                 res.Risk = -1;
                                 positions.Add(res);
-                                opp.Minutes.Clear();
-                                i = positions.Count < maxOpenPositions ? i : opp.Minutes.Count;
+
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
-
                     }
 
-                    for (int i = 0; i < opp.Days.Count; i++)
+                    for (int i = 0; i < opp.Days.Count && openDayPositions < AppSettings.EngineConfiguration.MaxDayPositions && positions.Count < maxOpenPositions; i++)
                     {
                         if (!alreadyUsed.Contains(opp.Days[i].Symbol))
                         {
@@ -170,16 +176,17 @@ namespace Trade02.Business.services
                             {
                                 alreadyUsed.Add(opp.Days[i].Symbol);
 
+                                openDayPositions++;
+
                                 res.Risk = -3;
                                 positions.Add(res);
-                                opp.Days.Clear();
-                                i = opp.Days.Count;
+
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
                     }
 
-                    for (int i = 0; i < opp.Hours.Count; i++)
+                    for (int i = 0; i < opp.Hours.Count && openHourPositions < AppSettings.EngineConfiguration.MaxHourPositions && positions.Count < maxOpenPositions; i++)
                     {
                         if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
                         {
@@ -188,16 +195,17 @@ namespace Trade02.Business.services
                             {
                                 alreadyUsed.Add(opp.Hours[i].Symbol);
 
+                                openHourPositions++;
+
                                 res.Risk = -2;
                                 positions.Add(res);
-                                opp.Hours.Clear();
-                                i = opp.Hours.Count;
+
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                             }
                         }
                     }
                 }
-
+                #endregion
                 return new ManagerResponse(opp, positions, toMonitor);
             }
             catch (Exception ex)
@@ -207,6 +215,56 @@ namespace Trade02.Business.services
             }
         }
 
+        /// <summary>
+        /// Calculate
+        /// </summary>
+        private void MaxPositionsPerType()
+        {
+            int maxOpenRunner = maxOpenPositions;
+            while (maxOpenRunner > 0)
+            {
+                if (AppSettings.EngineConfiguration.Minute)
+                {
+                    AppSettings.EngineConfiguration.MaxMinutePositions += 1;
+                    maxOpenRunner--;
+                }
+                if (AppSettings.EngineConfiguration.Hour && maxOpenRunner > 0)
+                {
+                    AppSettings.EngineConfiguration.MaxHourPositions += 1;
+                    maxOpenRunner--;
+                }
+                if (AppSettings.EngineConfiguration.Day && maxOpenRunner > 0)
+                {
+                    AppSettings.EngineConfiguration.MaxDayPositions += 1;
+                    maxOpenRunner--;
+                }
+            }
+        }
+
+        private void UpdateOpenPositionsPerType(List<Position> positions)
+        {
+            openDayPositions = 0;
+            openHourPositions = 0;
+            openMinutePositions = 0;
+
+            for (int i = 0; i < positions.Count; i++)
+            {
+                var current = positions[i];
+
+                switch (current.Type)
+                {
+                    case RecommendationType.Day:
+                        openDayPositions++;
+                        break;
+                    case RecommendationType.Hour:
+                        openHourPositions++;
+                        break;
+                    case RecommendationType.Minute:
+                        openMinutePositions++;
+                        break;
+                }
+            }
+        }
 
         /// <summary>
         /// Executa a venda a partir de um motor de decisão.
@@ -287,7 +345,7 @@ namespace Trade02.Business.services
 
         }
 
-        
+
         /// <summary>
         /// Faz a validação se vale ou não a pena vender o ativo, caso sim, determina o momento a partir de certas validações e executa.
         /// </summary>
@@ -335,7 +393,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += order.Price - position.InitialPrice;
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (order.Price - position.InitialPrice);
 
                     return position;
                 }
@@ -357,7 +415,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += order.Price - position.InitialPrice;
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (order.Price - position.InitialPrice);
                     return position;
                 }
                 return null;
