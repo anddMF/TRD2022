@@ -9,14 +9,14 @@ namespace Trade02.Infra.Cross
 {
     public class WalletManagement
     {
-        private static readonly string pathFolder = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\WALLET");
-        private static readonly string filePath = $"{pathFolder}\\positions.csv";
+        private static readonly string folderPath = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\WALLET");
+        private static readonly string filePath = $"{folderPath}\\positions.csv";
         public static bool AddPositionToFile(Position position, decimal currentProfit, decimal currentUSDTProfit)
         {
             try
             {
-                if (!Directory.Exists(pathFolder))
-                    Directory.CreateDirectory(pathFolder);
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
 
                 if (!File.Exists(filePath))
                 {
@@ -72,7 +72,7 @@ namespace Trade02.Infra.Cross
             {
                 List<Position> positions = new List<Position>();
 
-                if (!Directory.Exists(pathFolder))
+                if (!Directory.Exists(folderPath))
                     return null;
 
                 if (!File.Exists(filePath))

@@ -393,7 +393,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (order.Price - position.InitialPrice);
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
 
                     return position;
                 }
@@ -415,7 +415,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (order.Price - position.InitialPrice);
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
                     return position;
                 }
                 return null;

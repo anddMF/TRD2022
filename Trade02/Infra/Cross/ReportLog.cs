@@ -15,12 +15,12 @@ namespace Trade02.Infra.Cross
             try
             {
                 #region Folder ops
-                string pathFolder = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\REPORTS");
-                if (!Directory.Exists(pathFolder))
-                    Directory.CreateDirectory(pathFolder);
+                string folderPath = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\REPORTS");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
                 #endregion
 
-                string filepath = string.Format("{0}\\{1}.csv", pathFolder, "REPORTS-"+ DateTime.Now.Date.ToString("yyyyMMdd"));
+                string filepath = string.Format("{0}\\{1}.csv", folderPath, "REPORTS-"+ DateTime.Now.Date.ToString("yyyyMMdd"));
 
                 if (!File.Exists(filepath))
                 {
