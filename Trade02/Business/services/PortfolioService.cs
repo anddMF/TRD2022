@@ -62,7 +62,7 @@ namespace Trade02.Business.services
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.1;
             else
-                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.7;
+                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.6;
 
             Console.WriteLine($"SELL perc: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT perc: {AppSettings.TradeConfiguration.CurrentProfit}, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             try
