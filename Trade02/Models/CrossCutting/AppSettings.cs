@@ -52,6 +52,7 @@ namespace Trade02.Models.CrossCutting
         public bool Day { get; set; }
         public bool Hour { get; set; }
         public bool Minute { get; set; }
+        public bool MovingAverage { get; set; }
         public int MaxDayPositions { get; set; }
         public int MaxHourPositions { get; set; }
         public int MaxMinutePositions { get; set; }

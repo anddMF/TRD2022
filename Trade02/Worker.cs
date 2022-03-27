@@ -20,6 +20,7 @@ namespace Trade02
         private readonly ILogger<Worker> _logger;
         private static MarketService _marketSvc;
         private static PortfolioService _portfolioSvc;
+        private static RecommendationService _recSvc;
 
         private readonly string currency = AppSettings.TradeConfiguration.Currency;
         private readonly int maxToMonitor = AppSettings.TradeConfiguration.MaxToMonitor;
@@ -33,6 +34,7 @@ namespace Trade02
             _logger = logger;
             _marketSvc = new MarketService(clientFactory, logger);
             _portfolioSvc = new PortfolioService(clientFactory, logger);
+            _recSvc = new RecommendationService(clientFactory, logger);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -55,7 +57,7 @@ namespace Trade02
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                var opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
+                var opp = await _recSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
                 
 
                 Console.WriteLine("----------------- Lista inicial capturada ------------------\n");
@@ -87,9 +89,9 @@ namespace Trade02
                         else
                         {
                             // TODO: avaliar um jeito para desligar as recomendações que já estão cheias, diminuindo, assim, processamento e tempo
-                            opp = await _marketSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
+                            opp = await _recSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
                             if (toMonitor.Count > 0)
-                                opp = _marketSvc.RepurchaseValidation(opp, toMonitor);
+                                opp = _recSvc.RepurchaseValidation(opp, toMonitor);
                         }
                     } else if (openPositions.Count == 0){
                         _logger.LogInformation($"\n\t ###### Lucro maximo atingido ######");
