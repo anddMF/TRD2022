@@ -94,7 +94,7 @@ namespace Trade02
                                 opp = _recSvc.RepurchaseValidation(opp, toMonitor);
                         }
                     } else if (openPositions.Count == 0){
-                        _logger.LogInformation($"\n\t ###### Lucro maximo atingido ######");
+                        _logger.LogInformation($"\n\t ###### Lucro maximo atingido ###### \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
                         runner = false;
                     }
                 }
