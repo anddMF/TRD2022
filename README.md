@@ -6,6 +6,7 @@
 - [x] File to recover open positions
 - [x] Engines switches in appsettings.json
 - [ ] Queue communication (SQS and Kafka)
+- [ ] Dummy version (application only simulate the trades)
 
 <hr>
 
