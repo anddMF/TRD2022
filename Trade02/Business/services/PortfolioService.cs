@@ -288,14 +288,8 @@ namespace Trade02.Business.services
                 if (j > 0 && price > prevPrice)
                 {
                     Console.WriteLine("\n Caiu venda SUBINDO\n");
-                    // debug comm
+                   
                     var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
-
-                    //debug rem
-                    //var order = new BinancePlacedOrder();
-                    //order.Price = market.AskPrice;
-                    //order.Quantity = quantity;
-                    //
 
                     if (order == null)
                         _logger.LogError($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
@@ -308,15 +302,9 @@ namespace Trade02.Business.services
             }
 
             Console.WriteLine("\n Caiu venda FINAL\n");
-            // debug comm
+            
             var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
-            //debug rem
-            //var mark = await _clientSvc.GetTicker(symbol);
-            //var final = new BinancePlacedOrder();
-            //final.Price = mark.AskPrice;
-            //final.Quantity = quantity;
-            //
             if (final == null)
                 _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
             else
@@ -513,14 +501,7 @@ namespace Trade02.Business.services
 
                 if (j > 0 && price > prevPrice)
                 {
-                    // debug comm
                     var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
-
-                    //debug rem
-                    //var order = new BinancePlacedOrder();
-                    //order.Price = market.AskPrice;
-                    //order.Quantity = quantity;
-                    //
 
                     if (order == null)
                     {
@@ -564,14 +545,7 @@ namespace Trade02.Business.services
 
                 if (j > 0 && price > prevPrice && price > minPrice)
                 {
-                    // debug comm
                     var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
-
-                    //debug rem
-                    //var order = new BinancePlacedOrder();
-                    //order.Price = market.AskPrice;
-                    //order.Quantity = quantity;
-                    //
 
                     if (order == null)
                     {
