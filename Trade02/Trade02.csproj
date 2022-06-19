@@ -5,6 +5,10 @@
     <UserSecretsId>dotnet-Trade02-D2EED73B-B995-4239-A604-507A8A6F6172</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Binance.Net" Version="7.2.7" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.22" />
