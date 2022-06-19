@@ -33,6 +33,7 @@ namespace Trade02.Models.CrossCutting
 
     public class TradeConfiguration
     {
+        public bool FreeMode { get; set; }
         public string Currency { get; set; }
         public decimal MaxBuyAmount { get; set; }
         public int MaxToMonitor { get; set; }

@@ -22,11 +22,7 @@ namespace Trade02.Business.services
         private static APICommunication _clientSvc;
         private readonly ILogger<Worker> _logger;
 
-        private readonly int daysToAnalyze = AppSettings.TradeConfiguration.DaysToAnalyze + 1;
-
-        private readonly bool dayConfig = AppSettings.EngineConfiguration.Day;
-        private readonly bool hourConfig = AppSettings.EngineConfiguration.Hour;
-        private readonly bool minuteConfig = AppSettings.EngineConfiguration.Minute;
+        private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
 
         public MarketService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
         {
@@ -72,7 +68,7 @@ namespace Trade02.Business.services
             try
             {
                 IBinanceTick data = await _clientSvc.GetTicker(symbol);
-
+                
                 return data;
             }
             catch (Exception ex)
@@ -106,7 +102,13 @@ namespace Trade02.Business.services
         {
             try
             {
-                // preciso ver como confirmar que a operação já foi executada, não a ordem em si
+                if (freeMode)
+                {
+                    BinancePlacedOrder fakeOrder = await PlaceFakeOrder(symbol, quantity);
+
+                    return fakeOrder;
+                }
+
                 BinancePlacedOrder order = await _clientSvc.PlaceOrder(symbol, quantity, OrderSide.Buy);
 
                 return order;
@@ -128,7 +130,13 @@ namespace Trade02.Business.services
         {
             try
             {
-                // tratamentos específicos para venda
+                if(freeMode)
+                {
+                    BinancePlacedOrder fakeOrder = await PlaceFakeOrder(symbol, quantity);
+
+                    return fakeOrder;
+                }
+
                 BinancePlacedOrder order = await _clientSvc.PlaceOrder(symbol, quantity, OrderSide.Sell);
 
                 return order;
@@ -140,7 +148,17 @@ namespace Trade02.Business.services
             }
         }
 
-        
+        private async Task<BinancePlacedOrder> PlaceFakeOrder(string symbol, decimal quantity)
+        {
+            BinancePlacedOrder fakeOrder = new BinancePlacedOrder();
+
+            var ticker = await GetSingleTicker(symbol);
+
+            fakeOrder.Price = ticker.AskPrice;
+            fakeOrder.Quantity = quantity;
+
+            return fakeOrder;
+        }
 
         /// <summary>
         /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida
