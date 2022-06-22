@@ -17,7 +17,7 @@ namespace Trade02
 {
     public class Worker : BackgroundService
     {
-        private readonly ILogger<Worker> _logger;
+        private readonly ILogger _logger;
         private static MarketService _marketSvc;
         private static PortfolioService _portfolioSvc;
         private static RecommendationService _recSvc;

@@ -16,7 +16,7 @@ namespace Trade02.Business.services
     public class RecommendationService
     {
         private static APICommunication _clientSvc;
-        private readonly ILogger<Worker> _logger;
+        private readonly ILogger _logger;
 
         private readonly int daysToAnalyze = AppSettings.TradeConfiguration.DaysToAnalyze + 1;
 
@@ -25,7 +25,7 @@ namespace Trade02.Business.services
         private readonly bool minuteConfig = AppSettings.EngineConfiguration.Minute;
         private readonly bool maConfig = AppSettings.EngineConfiguration.MovingAverage;
 
-        public RecommendationService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
+        public RecommendationService(IHttpClientFactory clientFactory, ILogger logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);

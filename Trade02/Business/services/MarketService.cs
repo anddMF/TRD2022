@@ -20,11 +20,11 @@ namespace Trade02.Business.services
     public class MarketService
     {
         private static APICommunication _clientSvc;
-        private readonly ILogger<Worker> _logger;
+        private readonly ILogger _logger;
 
         private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
 
-        public MarketService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
+        public MarketService(IHttpClientFactory clientFactory, ILogger logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);

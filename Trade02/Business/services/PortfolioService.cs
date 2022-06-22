@@ -24,7 +24,7 @@ namespace Trade02.Business.services
         #region setup variables
         private static APICommunication _clientSvc;
         private static MarketService _marketSvc;
-        private readonly ILogger<Worker> _logger;
+        private readonly ILogger _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
@@ -35,12 +35,12 @@ namespace Trade02.Business.services
         private int openMinutePositions = 0;
         #endregion
 
-        public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
+        public PortfolioService(IHttpClientFactory clientFactory, ILogger logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);
             _marketSvc = new MarketService(clientFactory, logger);
-
+            _logger.LogInformation("teste");
             MaxPositionsPerType();
         }
 
