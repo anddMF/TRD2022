@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Trade02.Business.services.Interfaces;
 using Trade02.Infra.DAL;
+using Trade02.Infra.DAL.Interfaces;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 
@@ -16,7 +17,7 @@ namespace Trade02.Business.services
 {
     public class RecommendationService : IRecommendationService
     {
-        private static APICommunication _clientSvc;
+        private static IAPICommunication _clientSvc;
         private readonly ILogger _logger;
 
         private readonly int daysToAnalyze = AppSettings.TradeConfiguration.DaysToAnalyze + 1;
@@ -26,10 +27,10 @@ namespace Trade02.Business.services
         private readonly bool minuteConfig = AppSettings.EngineConfiguration.Minute;
         private readonly bool maConfig = AppSettings.EngineConfiguration.MovingAverage;
 
-        public RecommendationService(IHttpClientFactory clientFactory, ILogger<RecommendationService> logger)
+        public RecommendationService(ILogger<RecommendationService> logger, IAPICommunication clientSvc)
         {
             _logger = logger;
-            _clientSvc = new APICommunication(clientFactory);
+            _clientSvc = clientSvc;
         }
 
         public async Task<OpportunitiesResponse> CheckOppotunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes)

@@ -9,6 +9,7 @@ namespace Trade02.Models.CrossCutting
         public static ApiConfiguration ApiConfiguration { get; set; }
         public static TradeConfiguration TradeConfiguration { get; set; }
         public static EngineConfiguration EngineConfiguration { get; set; }
+        public static KafkaConfiguration KafkaConfiguration { get; set; }
 
         public static ApiConfiguration GetAPiConfiguration()
         {
@@ -21,6 +22,10 @@ namespace Trade02.Models.CrossCutting
         public static EngineConfiguration GetEngineConfiguration()
         {
             return EngineConfiguration;
+        }
+        public static KafkaConfiguration GetKafkaConfiguration()
+        {
+            return KafkaConfiguration;
         }
     }
 
@@ -57,5 +62,11 @@ namespace Trade02.Models.CrossCutting
         public int MaxDayPositions { get; set; }
         public int MaxHourPositions { get; set; }
         public int MaxMinutePositions { get; set; }
+    }
+
+    public class KafkaConfiguration
+    {
+        public string BootstrapServer { get; set; }
+        public string Topic { get; set; }
     }
 }

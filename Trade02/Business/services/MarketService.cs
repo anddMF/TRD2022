@@ -5,13 +5,10 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Trade02.Business.services.Interfaces;
-using Trade02.Infra.DAL;
+using Trade02.Infra.DAL.Interfaces;
 using Trade02.Models.CrossCutting;
-using Trade02.Models.Trade;
 
 namespace Trade02.Business.services
 {
@@ -20,15 +17,15 @@ namespace Trade02.Business.services
     /// </summary>
     public class MarketService : IMarketService
     {
-        private static APICommunication _clientSvc;
+        private static IAPICommunication _clientSvc;
         private readonly ILogger _logger;
 
         private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
 
-        public MarketService(IHttpClientFactory clientFactory, ILogger<MarketService> logger)
+        public MarketService(ILogger<MarketService> logger, IAPICommunication clientSvc)
         {
             _logger = logger;
-            _clientSvc = new APICommunication(clientFactory);
+            _clientSvc = clientSvc;
         }
 
         /// <summary>

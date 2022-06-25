@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Trade02.Infra.Cross
 {
     public interface IEventsOutput
     {
-        public void SendEvent(string message);
+        public Task<bool> SendEvent(string message);
     }
 }
