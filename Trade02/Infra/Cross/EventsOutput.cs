@@ -16,7 +16,7 @@ namespace Trade02.Infra.Cross
 
         public void SendEvent(string message)
         {
-            throw new NotImplementedException();
+            _logger.LogInformation(message);
         }
     }
 }

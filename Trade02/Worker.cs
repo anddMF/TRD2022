@@ -19,7 +19,7 @@ namespace Trade02
     {
         private readonly ILogger _logger;
         private static MarketService _marketSvc;
-        private static PortfolioService _portfolioSvc;
+        private static IPortfolioService _portfolioSvc;
         private static RecommendationService _recSvc;
 
         private readonly string currency = AppSettings.TradeConfiguration.Currency;
@@ -29,11 +29,11 @@ namespace Trade02
 
         private decimal currentProfit = AppSettings.TradeConfiguration.CurrentProfit;
 
-        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory)
+        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory, IPortfolioService portfolioService)
         {
             _logger = logger;
             _marketSvc = new MarketService(clientFactory, logger);
-            _portfolioSvc = new PortfolioService(clientFactory, logger);
+            _portfolioSvc = portfolioService;
             _recSvc = new RecommendationService(clientFactory, logger);
         }
 

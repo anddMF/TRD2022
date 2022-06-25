@@ -19,11 +19,12 @@ namespace Trade02.Business.services
     /// <summary>
     /// Responsável por manipular dados da carteira de investimentos.
     /// </summary>
-    public class PortfolioService
+    public class PortfolioService : IPortfolioService
     {
         #region setup variables
         private static APICommunication _clientSvc;
         private static MarketService _marketSvc;
+        private static IEventsOutput _eventsOutput;
         private readonly ILogger _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
@@ -35,9 +36,10 @@ namespace Trade02.Business.services
         private int openMinutePositions = 0;
         #endregion
 
-        public PortfolioService(IHttpClientFactory clientFactory, ILogger logger)
+        public PortfolioService(IHttpClientFactory clientFactory, ILogger<PortfolioService> logger, IEventsOutput eventsOutput)
         {
             _logger = logger;
+            _eventsOutput = eventsOutput;
             _clientSvc = new APICommunication(clientFactory);
             _marketSvc = new MarketService(clientFactory, logger);
             _logger.LogInformation("teste");
@@ -641,7 +643,7 @@ namespace Trade02.Business.services
 
         }
 
-        public decimal ValorizationCalculation(decimal basePrice, decimal currentPrice)
+        private decimal ValorizationCalculation(decimal basePrice, decimal currentPrice)
         {
             return ((currentPrice - basePrice) / basePrice) * 100;
         }
