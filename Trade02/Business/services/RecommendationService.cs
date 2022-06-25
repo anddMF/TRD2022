@@ -7,13 +7,14 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Trade02.Business.services.Interfaces;
 using Trade02.Infra.DAL;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 
 namespace Trade02.Business.services
 {
-    public class RecommendationService
+    public class RecommendationService : IRecommendationService
     {
         private static APICommunication _clientSvc;
         private readonly ILogger _logger;
@@ -25,7 +26,7 @@ namespace Trade02.Business.services
         private readonly bool minuteConfig = AppSettings.EngineConfiguration.Minute;
         private readonly bool maConfig = AppSettings.EngineConfiguration.MovingAverage;
 
-        public RecommendationService(IHttpClientFactory clientFactory, ILogger logger)
+        public RecommendationService(IHttpClientFactory clientFactory, ILogger<RecommendationService> logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);
@@ -196,7 +197,7 @@ namespace Trade02.Business.services
         /// </summary>
         /// <param name="klines"></param>
         /// <returns></returns>
-        public bool SuperiorMovingAverage(List<IBinanceKline> klines)
+        private bool SuperiorMovingAverage(List<IBinanceKline> klines)
         {
             decimal avg1 = CalculateMovingAverage(5, klines);
             decimal avg2 = CalculateMovingAverage(10, klines);
@@ -211,7 +212,7 @@ namespace Trade02.Business.services
                 return false;
         }
 
-        public decimal CalculateMovingAverage(int period, List<IBinanceKline> klines)
+        private decimal CalculateMovingAverage(int period, List<IBinanceKline> klines)
         {
             decimal sum = 0;
             decimal average = 0;

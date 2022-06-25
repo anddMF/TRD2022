@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Trade02.Business.services.Interfaces;
 using Trade02.Infra.DAL;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
@@ -17,14 +18,14 @@ namespace Trade02.Business.services
     /// <summary>
     /// Responsável por manipular dados de mercado.
     /// </summary>
-    public class MarketService
+    public class MarketService : IMarketService
     {
         private static APICommunication _clientSvc;
         private readonly ILogger _logger;
 
         private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
 
-        public MarketService(IHttpClientFactory clientFactory, ILogger logger)
+        public MarketService(IHttpClientFactory clientFactory, ILogger<MarketService> logger)
         {
             _logger = logger;
             _clientSvc = new APICommunication(clientFactory);

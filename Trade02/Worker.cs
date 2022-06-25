@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Trade02.Business.services;
+using Trade02.Business.services.Interfaces;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 
@@ -18,9 +19,9 @@ namespace Trade02
     public class Worker : BackgroundService
     {
         private readonly ILogger _logger;
-        private static MarketService _marketSvc;
+        private static IMarketService _marketSvc;
         private static IPortfolioService _portfolioSvc;
-        private static RecommendationService _recSvc;
+        private static IRecommendationService _recSvc;
 
         private readonly string currency = AppSettings.TradeConfiguration.Currency;
         private readonly int maxToMonitor = AppSettings.TradeConfiguration.MaxToMonitor;
@@ -29,12 +30,12 @@ namespace Trade02
 
         private decimal currentProfit = AppSettings.TradeConfiguration.CurrentProfit;
 
-        public Worker(ILogger<Worker> logger, IHttpClientFactory clientFactory, IPortfolioService portfolioService)
+        public Worker(ILogger<Worker> logger, IPortfolioService portfolioService, IMarketService marketSvc, IRecommendationService recSvc)
         {
             _logger = logger;
-            _marketSvc = new MarketService(clientFactory, logger);
+            _marketSvc = marketSvc;
             _portfolioSvc = portfolioService;
-            _recSvc = new RecommendationService(clientFactory, logger);
+            _recSvc = recSvc;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

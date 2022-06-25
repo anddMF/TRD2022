@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Trade02.Business.services;
+using Trade02.Business.services.Interfaces;
 using Trade02.Infra.Cross;
 using Trade02.Models.CrossCutting;
 
@@ -28,6 +29,8 @@ namespace Trade02
                     services.AddSingleton(options);
                     services.AddTransient<IEventsOutput, EventsOutput>();
                     services.AddTransient<IPortfolioService, PortfolioService>();
+                    services.AddTransient<IMarketService, MarketService>();
+                    services.AddTransient<IRecommendationService, RecommendationService>();
 
                     services.AddHttpClient("coinMarket", c =>
                     {

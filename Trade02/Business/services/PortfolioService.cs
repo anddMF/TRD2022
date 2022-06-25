@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Trade02.Business.services.Interfaces;
 using Trade02.Infra.Cross;
 using Trade02.Infra.DAL;
 using Trade02.Models.CrossCutting;
@@ -23,7 +24,7 @@ namespace Trade02.Business.services
     {
         #region setup variables
         private static APICommunication _clientSvc;
-        private static MarketService _marketSvc;
+        private static IMarketService _marketSvc;
         private static IEventsOutput _eventsOutput;
         private readonly ILogger _logger;
 
@@ -36,13 +37,12 @@ namespace Trade02.Business.services
         private int openMinutePositions = 0;
         #endregion
 
-        public PortfolioService(IHttpClientFactory clientFactory, ILogger<PortfolioService> logger, IEventsOutput eventsOutput)
+        public PortfolioService(IHttpClientFactory clientFactory, ILogger<PortfolioService> logger, IEventsOutput eventsOutput, IMarketService marketSvc)
         {
             _logger = logger;
             _eventsOutput = eventsOutput;
             _clientSvc = new APICommunication(clientFactory);
-            _marketSvc = new MarketService(clientFactory, logger);
-            _logger.LogInformation("teste");
+            _marketSvc = marketSvc;
             MaxPositionsPerType();
         }
 
