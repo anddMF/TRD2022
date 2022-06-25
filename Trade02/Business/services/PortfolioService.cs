@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Trade02.Business.services.Interfaces;
 using Trade02.Infra.Cross;
 using Trade02.Infra.DAL;
 using Trade02.Models.CrossCutting;
@@ -19,12 +20,13 @@ namespace Trade02.Business.services
     /// <summary>
     /// Responsável por manipular dados da carteira de investimentos.
     /// </summary>
-    public class PortfolioService
+    public class PortfolioService : IPortfolioService
     {
         #region setup variables
         private static APICommunication _clientSvc;
-        private static MarketService _marketSvc;
-        private readonly ILogger<Worker> _logger;
+        private static IMarketService _marketSvc;
+        private static IEventsOutput _eventsOutput;
+        private readonly ILogger _logger;
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
@@ -35,12 +37,12 @@ namespace Trade02.Business.services
         private int openMinutePositions = 0;
         #endregion
 
-        public PortfolioService(IHttpClientFactory clientFactory, ILogger<Worker> logger)
+        public PortfolioService(IHttpClientFactory clientFactory, ILogger<PortfolioService> logger, IEventsOutput eventsOutput, IMarketService marketSvc)
         {
             _logger = logger;
+            _eventsOutput = eventsOutput;
             _clientSvc = new APICommunication(clientFactory);
-            _marketSvc = new MarketService(clientFactory, logger);
-
+            _marketSvc = marketSvc;
             MaxPositionsPerType();
         }
 
@@ -641,7 +643,7 @@ namespace Trade02.Business.services
 
         }
 
-        public decimal ValorizationCalculation(decimal basePrice, decimal currentPrice)
+        private decimal ValorizationCalculation(decimal basePrice, decimal currentPrice)
         {
             return ((currentPrice - basePrice) / basePrice) * 100;
         }
