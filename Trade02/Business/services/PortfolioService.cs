@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Trade02.Business.services.Interfaces;
 using Trade02.Infra.Cross;
-using Trade02.Infra.DAL;
+using Trade02.Infra.DAL.Interfaces;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 using static Trade02.Infra.Cross.ReportLog;
@@ -23,7 +23,7 @@ namespace Trade02.Business.services
     public class PortfolioService : IPortfolioService
     {
         #region setup variables
-        private static APICommunication _clientSvc;
+        private static IAPICommunication _clientSvc;
         private static IMarketService _marketSvc;
         private static IEventsOutput _eventsOutput;
         private readonly ILogger _logger;
@@ -37,12 +37,13 @@ namespace Trade02.Business.services
         private int openMinutePositions = 0;
         #endregion
 
-        public PortfolioService(IHttpClientFactory clientFactory, ILogger<PortfolioService> logger, IEventsOutput eventsOutput, IMarketService marketSvc)
+        public PortfolioService(ILogger<PortfolioService> logger, IEventsOutput eventsOutput, IMarketService marketSvc, IAPICommunication clientSvc)
         {
             _logger = logger;
             _eventsOutput = eventsOutput;
-            _clientSvc = new APICommunication(clientFactory);
+            _clientSvc = clientSvc;
             _marketSvc = marketSvc;
+
             MaxPositionsPerType();
         }
 

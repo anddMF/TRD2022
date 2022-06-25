@@ -13,11 +13,12 @@ using System.Net.Http;
 //using System.Text;
 //using System.Text.Json;
 using System.Threading.Tasks;
+using Trade02.Infra.DAL.Interfaces;
 using Trade02.Models.CrossCutting;
 
 namespace Trade02.Infra.DAL
 {
-    public class APICommunication
+    public class APICommunication : IAPICommunication
     {
         private static string API_KEY = "";
 
@@ -47,7 +48,6 @@ namespace Trade02.Infra.DAL
                 return response.Data.ToList();
             else
                 throw new Exception(response.Error.Message);
-
         }
 
         /// <summary>
@@ -63,7 +63,6 @@ namespace Trade02.Infra.DAL
                 return response.Data;
             else
                 throw new Exception(response.Error.Message);
-
         }
 
         /// <summary>
@@ -89,7 +88,6 @@ namespace Trade02.Infra.DAL
                 return res.Data;
             else
                 throw new Exception(res.Error.Message);
-
         }
 
         public async Task<List<IBinanceKline>> GetKlines(string symbol, KlineInterval interval)
