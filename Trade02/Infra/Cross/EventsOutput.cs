@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Trade02.Infra.DAL.Interfaces;
+using Trade02.Models.Trade;
 
 namespace Trade02.Infra.Cross
 {
