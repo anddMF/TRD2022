@@ -48,6 +48,18 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
+        /// Responsible for the transmission of the trade event for the EventsOutput
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <param name="position"></param>
+        private async void TrasmitTradeEvent(TradeEventType type, string message, Position position = null)
+        {
+            bool sent = await _eventsOutput.SendEvent(new TradeEvent(type, DateTime.Now, message, position));
+            // TODO: treatment for a event not sent
+        }
+
+        /// <summary>
         /// Motor de manipulação das posições em aberto e recomendadas. A partir de certas condições, determina o sell ou hold da posição.
         /// </summary>
         /// <param name="opp">oportunidades de compra</param>
@@ -67,7 +79,7 @@ namespace Trade02.Business.services
             else
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.6;
 
-            Console.WriteLine($"SELL perc: {AppSettings.TradeConfiguration.SellPercentage}, PROFIT perc: {AppSettings.TradeConfiguration.CurrentProfit}, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+            TrasmitTradeEvent(TradeEventType.Update, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             try
             {
                 #region manage open positions
@@ -291,11 +303,11 @@ namespace Trade02.Business.services
                 if (j > 0 && price > prevPrice)
                 {
                     Console.WriteLine("\n Caiu venda SUBINDO\n");
-                   
+
                     var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
                     if (order == null)
-                        _logger.LogError($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                        TrasmitTradeEvent(TradeEventType.Error, $"SELL OF {symbol} NOT EXECUTED");
                     else
                         return order;
                 }
@@ -305,11 +317,11 @@ namespace Trade02.Business.services
             }
 
             Console.WriteLine("\n Caiu venda FINAL\n");
-            
+
             var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
             if (final == null)
-                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### VENDA de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                TrasmitTradeEvent(TradeEventType.Error, $"SELL OF {symbol} NOT EXECUTED");
             else
                 return final;
 
@@ -379,7 +391,8 @@ namespace Trade02.Business.services
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
-                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    //_logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    TrasmitTradeEvent(TradeEventType.Sell, "", position);
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
@@ -401,7 +414,8 @@ namespace Trade02.Business.services
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
-                    _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    // _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
+                    TrasmitTradeEvent(TradeEventType.Sell, "", position);
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
@@ -446,17 +460,17 @@ namespace Trade02.Business.services
                         var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
                         if (order == null)
                         {
-                            // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                            TrasmitTradeEvent(TradeEventType.Error, $"PURCHASE OF {symbol} NOT EXECUTED");
                         }
                         else
                         {
-                            _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
+                            //_logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
                             bought.Add(symbols[i]);
 
                             Position position = new Position(market, order.Price, order.Quantity);
                             openPositions.Add(position);
 
+                            TrasmitTradeEvent(TradeEventType.Buy, "", position);
                             ReportLog.WriteReport(logType.COMPRA, position);
                             j = 10;
                         }
@@ -508,15 +522,15 @@ namespace Trade02.Business.services
 
                     if (order == null)
                     {
-                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                        TrasmitTradeEvent(TradeEventType.Error, $"PURCHASE OF {symbol} NOT EXECUTED");
                     }
                     else
                     {
-                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}, type: {type}");
+                        //_logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}, type: {type}");
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
+                        TrasmitTradeEvent(TradeEventType.Buy, "", position);
                         ReportLog.WriteReport(logType.COMPRA, position);
                         j = 10;
                     }
@@ -553,14 +567,16 @@ namespace Trade02.Business.services
                     if (order == null)
                     {
                         // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
+                        //_logger.LogWarning($"#### #### #### #### #### #### ####\n\t### PURCHASE OF {symbol} NOT EXECUTED ###\n\t#### #### #### #### #### #### ####");
+                        TrasmitTradeEvent(TradeEventType.Error, $"PURCHASE OF {symbol} NOT EXECUTED");
                     }
                     else
                     {
-                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
+                        // _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
+                        TrasmitTradeEvent(TradeEventType.Buy, "", position);
                         ReportLog.WriteReport(logType.COMPRA, position);
                         j = 10;
                     }
@@ -595,8 +611,7 @@ namespace Trade02.Business.services
 
             if (quantity < minUSDT && supportQuantity < minUSDT)
             {
-                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### SALDO USDT INSUFICIENTE PARA COMPRAS ####\n\t#### #### #### #### #### #### ####");
-
+                TrasmitTradeEvent(TradeEventType.Error, "INSUFFICIENT USDT BALANCE FOR PURCHASES");
                 return 0;
             }
 

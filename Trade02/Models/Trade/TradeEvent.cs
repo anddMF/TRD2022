@@ -4,13 +4,20 @@ using System.Text;
 
 namespace Trade02.Models.Trade
 {
+    public enum TradeEventType
+    {
+        Buy = 0,
+        Sell = 1,
+        Update = 2,
+        Error = 3
+    }
+
     public class TradeEvent
     {
         public TradeEventType EventType { get; set; }
         public Position PositionData { get; set; }
         public DateTime Timestamp { get; set; }
         public string Payload { get; set; }
-
 
         public TradeEvent(TradeEventType eventType, DateTime timestamp, string payload, Position position = null)
         {
@@ -38,13 +45,5 @@ namespace Trade02.Models.Trade
         {
             return $"VENDA: {DateTime.Now}, moeda: {PositionData.Symbol}, total valorization: {PositionData.Valorization}, final price: {PositionData.LastPrice}, initial price: {PositionData.InitialPrice}, type: {PositionData.Type}";
         }
-    }
-
-    public enum TradeEventType
-    {
-        Buy = 0,
-        Sell = 1,
-        Update = 2,
-        Error = 3
     }
 }
