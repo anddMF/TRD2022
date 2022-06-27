@@ -12,8 +12,8 @@ namespace Trade02.Infra.Cross
     {
         // send output
         private readonly ILogger _logger;
-        private static IKafkaCommunication _kafkaSvc;
-        public EventsOutput(ILogger<EventsOutput> logger, IKafkaCommunication kafkaSvc)
+        private static IEventExtCommunication _kafkaSvc;
+        public EventsOutput(ILogger<EventsOutput> logger, IEventExtCommunication kafkaSvc)
         {
             _logger = logger;
             _kafkaSvc = kafkaSvc;

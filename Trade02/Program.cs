@@ -33,7 +33,7 @@ namespace Trade02
                     services.AddTransient<IPortfolioService, PortfolioService>();
                     services.AddTransient<IMarketService, MarketService>();
                     services.AddTransient<IRecommendationService, RecommendationService>();
-                    services.AddTransient<IKafkaCommunication, KafkaCommunication>();
+                    services.AddTransient<IEventExtCommunication, KafkaCommunication>();
                     services.AddTransient<IAPICommunication, APICommunication>();
 
                     services.AddHttpClient("coinMarket", c =>
