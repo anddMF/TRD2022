@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Trade02.Infra.DAL.Interfaces;
+using Trade02.Models.Trade;
 
 namespace Trade02.Infra.Cross
 {
@@ -11,17 +12,27 @@ namespace Trade02.Infra.Cross
     {
         // send output
         private readonly ILogger _logger;
-        private static IKafkaCommunication _kafkaSvc;
-        public EventsOutput(ILogger<EventsOutput> logger, IKafkaCommunication kafkaSvc)
+        private static IEventExtCommunication _kafkaSvc;
+        public EventsOutput(ILogger<EventsOutput> logger, IEventExtCommunication kafkaSvc)
         {
             _logger = logger;
             _kafkaSvc = kafkaSvc;
         }
 
-        public async Task<bool> SendEvent(string message)
+        /// <summary>
+        /// Send the event for the configured external communications
+        /// </summary>
+        /// <param name="message">TradeEvent object</param>
+        /// <returns></returns>
+        public async Task<bool> SendEvent(TradeEvent message)
         {
-            _logger.LogInformation(message);
-            bool result = await _kafkaSvc.SendMessage(message);
+            // in a future avro (kafka), or anything related, this will be the layer responsible for the transformation of the object
+            if (message.EventType == TradeEventType.Error)
+                _logger.LogError(message.Payload);
+            else
+                _logger.LogInformation($"TradeEvent output: {message.Payload}");
+
+            bool result = await _kafkaSvc.SendMessage(message.Payload);
 
             return result;
         }

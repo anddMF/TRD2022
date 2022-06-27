@@ -9,7 +9,7 @@ using Trade02.Infra.DAL.Interfaces;
 
 namespace Trade02.Infra.DAL
 {
-    public class KafkaCommunication : IKafkaCommunication
+    public class KafkaCommunication : IEventExtCommunication
     {
         private readonly ILogger _logger;
 
