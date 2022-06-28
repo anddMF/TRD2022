@@ -49,53 +49,41 @@ namespace Trade02
                 bool hours = true;
                 bool minutes = true;
 
-                List<Position> openPositions = new List<Position>();
-                var open = _portfolioSvc.GetLastPositions();
-                openPositions = open == null ? new List<Position>() : open;
-
                 List<Position> toMonitor = new List<Position>();
+
+                var alreadyOpenPositions = _portfolioSvc.GetLastPositions();
+                List<Position> openPositions = alreadyOpenPositions == null ? new List<Position>() : alreadyOpenPositions;
 
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                var opp = await _recSvc.CheckOppotunitiesByKlines(currentMarket, true, true, true);
-                
+                var opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket, true, true, true);
 
-                Console.WriteLine("----------------- Lista inicial capturada ------------------\n");
-
-                // TODO: avaliar um jeito para desligar as recomendações que já estão cheias, diminuindo, assim, processamento e tempo
-                days = true;
-                hours = true;
-                minutes = true;
-
+                Console.WriteLine("----------------- Initial list captured ------------------\n");
 
                 while (runner)
                 {
-                    
-                    Console.WriteLine($"----###### WORKER: posicoes {openPositions.Count}\n");
+                    Console.WriteLine($"----###### WORKER: positions {openPositions.Count}\n");
 
-                    // manage positions recebendo as recoendações e operações em aperto
                     var manager = await _portfolioSvc.ManagePosition(opp, openPositions, toMonitor);
 
                     openPositions = manager.OpenPositions;
                     toMonitor = manager.ToMonitor;
 
-                    // colocado aqui para não ter o delay entre a recomendação e o managePosition
                     await Task.Delay(20000, stoppingToken);
 
                     if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
                     {
                         if (openPositions.Count >= maxOpenPositions)
-                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Atingido numero maximo de posicoes em aberto ####\n\t#### #### #### #### #### #### ####\n");
+                            _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Reached the maximum number of open positions ####\n\t#### #### #### #### #### #### ####\n");
                         else
                         {
-                            // TODO: avaliar um jeito para desligar as recomendações que já estão cheias, diminuindo, assim, processamento e tempo
-                            opp = await _recSvc.CheckOppotunitiesByKlines(currentMarket, days, hours, minutes);
+                            opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket, days, hours, minutes);
                             if (toMonitor.Count > 0)
                                 opp = _recSvc.RepurchaseValidation(opp, toMonitor);
                         }
                     } else if (openPositions.Count == 0){
-                        _logger.LogInformation($"\n\t ###### Lucro maximo atingido ###### \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+                        _logger.LogInformation($"\n\t ###### Reached the maximum profit ###### \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
                         runner = false;
                     }
                 }

@@ -29,11 +29,11 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Retorna os símbolos com a maior valorização positiva ordenados na decrescente.
+        /// Returns, in descending order, the symbols with the best valorization from the last X period
         /// </summary>
-        /// <param name="numberOfSymbols">quantidade de símbolos que serão retornados</param>
-        /// <param name="currencySymbol">símbolo da moeda que será utilizada para a compra</param>
-        /// <param name="maxPercentage">porcentagem máxima da variação de preço</param>
+        /// <param name="numberOfSymbols">amount of symbols to be returned</param>
+        /// <param name="currencySymbol">symbol from the asset that will be use to buy</param>
+        /// <param name="maxPercentage">max percentage from the price variation</param>
         /// <returns></returns>
         public async Task<List<IBinanceTick>> GetTopPercentages(int numberOfSymbols, string currencySymbol, decimal maxPercentage, List<string> ownedSymbols)
         {
