@@ -57,7 +57,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Retorna os dados das últimas 24h de um determinado símbolo.
+        /// Returns the data from the last 24h of a specific symbol.
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns></returns>
@@ -77,9 +77,9 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Retorna os dados atuais das moedas enviadas no input.
+        /// Returns the recent data from the list of symbols on 'toMonitor'.
         /// </summary>
-        /// <param name="toMonitor">List de moedas para serem monitoradas</param>
+        /// <param name="toMonitor">list of coins to be monitored</param>
         /// <returns>Retorna os dados mais recentes das moedas de input</returns>
         public async Task<List<IBinanceTick>> MonitorTopPercentages(List<IBinanceTick> toMonitor)
         {
@@ -92,9 +92,9 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Envia ordem de compra.
+        /// Sends a buy order.
         /// </summary>
-        /// <param name="symbol">símbolo que será comprado</param>
+        /// <param name="symbol">symbol that will be bought</param>
         /// <returns></returns>
         public async Task<BinancePlacedOrder> PlaceBuyOrder(string symbol, decimal quantity)
         {
@@ -119,7 +119,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Envia uma ordem de venda
+        /// Sends a sell order.
         /// </summary>
         /// <param name="symbol">símbolo que será vendido</param>
         /// <param name="quantity">quantidade da moeda que será vendida</param>
@@ -146,6 +146,12 @@ namespace Trade02.Business.services
             }
         }
 
+        /// <summary>
+        /// When running the 'freeMode', this method is used to place a fake buy/sell order.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="quantity"></param>
+        /// <returns></returns>
         private async Task<BinancePlacedOrder> PlaceFakeOrder(string symbol, decimal quantity)
         {
             BinancePlacedOrder fakeOrder = new BinancePlacedOrder();
@@ -159,12 +165,12 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Cruza as listas de dados atuais das moedas e os anteriormente validados, verifica se existe uma valorização de X% para identificar uma tendencia de subida
-        /// e, por consequência, uma possível compra. Retorna a lista de moedas que atendam a estes requisitos.
+        /// Compares the list of current data from the coins against the list of previously validated, verifies if exists a valorization of X% to try to identify 
+        /// an upward trend, consequently, a possible purchase opportunitie.
         /// </summary>
-        /// <param name="currentData">dados atuais do market</param>
-        /// <param name="previousData">dados anteriormente separados</param>
-        /// <returns>Lista com as oportunidades de possíveis compras</returns>
+        /// <param name="currentData">current market data</param>
+        /// <param name="previousData">previously separated data</param>
+        /// <returns>list of possible opportunities</returns>
         public List<IBinanceTick> CheckOpportunities(List<IBinanceTick> currentData, List<IBinanceTick> previousData)
         {
             List<IBinanceTick> result = new List<IBinanceTick>();
@@ -187,7 +193,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Remove da lista de símbolos as moedas que já possuem posição em aberto.
+        /// Removes from the list of symbols (allSymbols) the symbols that already have an open position (ownedSymbols).
         /// </summary>
         /// <param name="allSymbols"></param>
         /// <param name="ownedSymbols"></param>
