@@ -8,6 +8,11 @@ namespace Trade02.Infra.Cross
 {
     public interface IEventsOutput
     {
+        /// <summary>
+        /// Send the event for the configured external communications
+        /// </summary>
+        /// <param name="message">TradeEvent object</param>
+        /// <returns></returns>
         public Task<bool> SendEvent(TradeEvent message);
     }
 }

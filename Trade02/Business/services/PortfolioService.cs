@@ -18,7 +18,7 @@ using static Trade02.Infra.Cross.ReportLog;
 namespace Trade02.Business.services
 {
     /// <summary>
-    /// Responsável por manipular dados da carteira de investimentos.
+    /// Responsible for the management of the assets.
     /// </summary>
     public class PortfolioService : IPortfolioService
     {

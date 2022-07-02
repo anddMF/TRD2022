@@ -10,11 +10,20 @@ using Trade02.Models.Trade;
 
 namespace Trade02.Business.services
 {
+    /// <summary>
+    /// Responsible for the management of the assets.
+    /// </summary>
     public interface IPortfolioService
     {
         public Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor);
         public Task<BinancePlacedOrder> ExecuteSellOrder(string symbol, decimal quantity);
+
+        /// <summary>
+        /// Returns, if exists, the open positions from the last execution from the robot.
+        /// </summary>
+        /// <returns></returns>
         public List<Position> GetLastPositions();
+
         public Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market);
         public Task<OrderResponse> ExecuteMulitpleOrder(List<string> symbols);
         public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type);
