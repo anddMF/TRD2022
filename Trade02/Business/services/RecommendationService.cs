@@ -101,6 +101,13 @@ namespace Trade02.Business.services
             return new OpportunitiesResponse(daysList, hoursList, minutesList);
         }
 
+        /// <summary>
+        /// Verifies if the symbol has a favorable buy status based on it's last klines.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="interval"></param>
+        /// <param name="period"></param>
+        /// <returns></returns>
         public async Task<bool> IsAKlineOpportunitie(string symbol, KlineInterval interval, int period)
         {
             // separa os últimos X dias de klines
@@ -155,10 +162,10 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Faz uma atualização na lista de recomendações, validando se existem moedas já vendidas nas mesmas, caso tenha, somente mantém nas listas caso esteja 1% acima do valor que foi vendida.
+        /// Responsible to verify on the list of recommendations if contains positions that were already sold before, if so, only maintains in the list the ones that have a price 1% higher compared to the sold price.
         /// </summary>
-        /// <param name="opp">lista de recomendações</param>
-        /// <param name="assetList">lista de moedas que foram vendidas</param>
+        /// <param name="opp">list of recommendations</param>
+        /// <param name="assetList">list of already sold positions</param>
         /// <returns></returns>
         public OpportunitiesResponse RepurchaseValidation(OpportunitiesResponse opp, List<Position> assetList)
         {
@@ -202,7 +209,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Verifica se a MA (média móvel) mais curta está, pelo menos, 1% acima da MA mais longa. Caso esteja, retorna true, do contrário, retorna false.
+        /// Verifies if the shortest MA (moving average) is, at least, 1% above compared to the longest one. If so, returns true, and returns false otherwise.
         /// </summary>
         /// <param name="klines"></param>
         /// <returns></returns>
