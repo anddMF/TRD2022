@@ -233,7 +233,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Calculate
+        /// Calculate how many spots are available for each type of recommendation.
         /// </summary>
         private void MaxPositionsPerType()
         {
@@ -259,7 +259,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Manages the spots for new positions per type of recommendation. Based on the current open positions, determines how many spots are left for each type of recommendation and stores
+        /// Updates the spots left for new positions per type of recommendation. Based on the current open positions, determines how many spots are left for each type of recommendation and stores
         /// it on global variables.
         /// </summary>
         /// <param name="positions">current open positions</param>
@@ -579,7 +579,6 @@ namespace Trade02.Business.services
 
                     if (order == null)
                     {
-                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
                         //_logger.LogWarning($"#### #### #### #### #### #### ####\n\t### PURCHASE OF {symbol} NOT EXECUTED ###\n\t#### #### #### #### #### #### ####");
                         TrasmitTradeEvent(TradeEventType.Error, $"PURCHASE OF {symbol} NOT EXECUTED");
                     }
@@ -632,7 +631,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Get dos balanços das moedas em carteira.
+        /// Gets the balance from the assets on the wallet.
         /// </summary>
         /// <returns></returns>
         public async Task<List<BinanceBalance>> GetBalance()
@@ -652,7 +651,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Get do balanço de uma moeda em carteira.
+        /// Gets the balance from one specific asset on the wallet.
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns></returns>
