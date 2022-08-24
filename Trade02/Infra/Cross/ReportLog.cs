@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 
 namespace Trade02.Infra.Cross
@@ -14,13 +15,16 @@ namespace Trade02.Infra.Cross
         {
             try
             {
+                bool freeMode = AppSettings.TradeConfiguration.FreeMode;
+
                 #region Folder ops
                 string folderPath = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\REPORTS");
                 if (!Directory.Exists(folderPath))
                     Directory.CreateDirectory(folderPath);
                 #endregion
 
-                string filepath = string.Format("{0}\\{1}.csv", folderPath, "REPORTS-"+ DateTime.Now.Date.ToString("yyyyMMdd"));
+                string freeExecution = freeMode ? "-DUMMY" : "";
+                string filepath = string.Format("{0}\\{1}.csv", folderPath, "REPORTS-" + DateTime.Now.Date.ToString("yyyyMMdd") + freeExecution);
 
                 if (!File.Exists(filepath))
                 {
