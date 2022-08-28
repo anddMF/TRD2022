@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Trade02.Infra.DAO;
 
 namespace Trade02.Models.Trade
 {
     public enum TradeEventType
     {
-        Buy = 0,
-        Sell = 1,
-        Update = 2,
-        Error = 3
+        BUY, SELL, INFO, ERROR
     }
 
     public class TradeEvent
@@ -21,16 +19,16 @@ namespace Trade02.Models.Trade
 
         public TradeEvent(TradeEventType eventType, DateTime timestamp, string payload, Position position = null)
         {
-            if(position != null && (eventType != TradeEventType.Sell || eventType != TradeEventType.Buy))
+            if(position != null && (eventType != TradeEventType.SELL || eventType != TradeEventType.BUY))
                 throw new ArgumentException("On a TradeEventType Sell or Buy, position must be a not null object");
 
             PositionData = position;
             Timestamp = timestamp;
             EventType = eventType;
 
-            if (eventType == TradeEventType.Buy)
+            if (eventType == TradeEventType.BUY)
                 Payload = PayloadFromBuy();
-            else if (eventType == TradeEventType.Sell)
+            else if (eventType == TradeEventType.SELL)
                 Payload = PayloadFromSell();
             else
                 Payload = payload;
@@ -44,6 +42,24 @@ namespace Trade02.Models.Trade
         private string PayloadFromSell()
         {
             return $"VENDA: {DateTime.Now}, moeda: {PositionData.Symbol}, total valorization: {PositionData.Valorization}, final price: {PositionData.LastPrice}, initial price: {PositionData.InitialPrice}, type: {PositionData.Type}";
+        }
+
+        public TradeEventDAO GenerateRecord()
+        {
+            var record = new TradeEventDAO();
+
+            record.client_id = 0;
+            record.asset = PositionData.Symbol;
+            record.event_type = (EventType) EventType;
+            record.rec_type = (RecommendationType)PositionData.Type;
+            record.initial_price = PositionData.InitialPrice;
+            record.final_price = PositionData.LastPrice;
+            record.quantity = PositionData.Quantity;
+            record.valorization = PositionData.Valorization;
+            record.timestamp = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+            record.message = Payload;
+
+            return record;
         }
     }
 }

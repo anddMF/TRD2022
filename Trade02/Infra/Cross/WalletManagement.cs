@@ -99,21 +99,21 @@ namespace Trade02.Infra.Cross
             return position;
         }
 
-        private static RecommendationType ConvertRecType(string value)
+        private static RecommendationTypeEnum ConvertRecType(string value)
         {
             switch (value.ToLower())
             {
                 case "day":
-                    return RecommendationType.Day;
+                    return RecommendationTypeEnum.Day;
                     
                 case "hour":
-                    return RecommendationType.Hour;
+                    return RecommendationTypeEnum.Hour;
                     
                 case "minute":
-                    return RecommendationType.Minute;
+                    return RecommendationTypeEnum.Minute;
 
                 default:
-                    return RecommendationType.Day;
+                    return RecommendationTypeEnum.Day;
             }
         }
     }

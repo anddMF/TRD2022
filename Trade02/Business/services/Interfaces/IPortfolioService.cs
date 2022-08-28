@@ -59,7 +59,7 @@ namespace Trade02.Business.services
         /// <param name="symbol">symbol for the order</param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type);
+        public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationTypeEnum type);
 
         /// <summary>
         /// Executes a single buy order that meets the constraints for it and the minimum price.
@@ -68,7 +68,7 @@ namespace Trade02.Business.services
         /// <param name="type"></param>
         /// <param name="minPrice"></param>
         /// <returns></returns>
-        public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type, decimal minPrice);
+        public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationTypeEnum type, decimal minPrice);
 
         /// <summary>
         /// Get the amount of USDT that can be spent on an order.
