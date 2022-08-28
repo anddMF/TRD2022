@@ -27,12 +27,12 @@ namespace Trade02.Infra.Cross
         public async Task<bool> SendEvent(TradeEvent message)
         {
             // in a future avro (kafka), or anything related, this will be the layer responsible for the transformation of the object
-            if (message.EventType == TradeEventType.Error)
+            if (message.EventType == TradeEventType.ERROR)
                 _logger.LogError(message.Payload);
             else
                 _logger.LogInformation($"TradeEvent output: {message.Payload}");
 
-            bool result = await _kafkaSvc.SendMessage(message.Payload);
+            bool result = await _kafkaSvc.SendMessage(message);
 
             return result;
         }

@@ -6,6 +6,8 @@ using Trade02.Models.CrossCutting;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Trade02.Infra.DAL.Interfaces;
+using Trade02.Models.Trade;
+using Trade02.Infra.DAO;
 
 namespace Trade02.Infra.DAL
 {
@@ -25,7 +27,7 @@ namespace Trade02.Infra.DAL
         /// </summary>
         /// <param name="message">string message for the topic</param>
         /// <returns>true if the message was persisted, otherwise, returns false</returns>
-        public async Task<bool> SendMessage(string message)
+        public async Task<bool> SendMessage(TradeEvent payload)
         {
             try
             {
@@ -34,16 +36,18 @@ namespace Trade02.Infra.DAL
                     BootstrapServers = bootstrapServer
                 };
 
-                using (var producer = new ProducerBuilder<Null, string>(config).Build())
+                using (var producer = new ProducerBuilder<Null, TradeEventDAO>(config).Build())
                 {
                     int tries = 3;
                     bool delivered = false;
 
+                    var record = new Message<Null, TradeEventDAO> { Value = payload.GenerateRecord() };
+
                     while (tries > 0 || delivered == false)
                     {
-                        var result = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
+                        var result = await producer.ProduceAsync(topic, record);
 
-                        _logger.LogInformation($"Message: {message} | Status: {result.Status.ToString()}");
+                        _logger.LogInformation($"Message: {payload.Payload} | Status: {result.Status.ToString()}");
 
                         delivered = result.Status == PersistenceStatus.Persisted || result.Status == PersistenceStatus.PossiblyPersisted ? true : false;
                         tries = delivered ? -1 : tries - 1;

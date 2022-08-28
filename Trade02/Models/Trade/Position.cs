@@ -21,7 +21,7 @@ namespace Trade02.Models.Trade
         public decimal Quantity { get; set; }
         public int Minutes { get; set; }
         public decimal Risk { get; set; }
-        public RecommendationType Type { get; set; }
+        public RecommendationTypeEnum Type { get; set; }
 
         public Position()
         { }
@@ -39,7 +39,7 @@ namespace Trade02.Models.Trade
             LastValue = InitialValue;
             Minutes = 1;
             Risk = -10;
-            Type = RecommendationType.Day;
+            Type = RecommendationTypeEnum.Day;
         }
 
         public Position(string symbol, decimal orderPrice, decimal quantity)
@@ -54,10 +54,10 @@ namespace Trade02.Models.Trade
             LastValue = InitialValue;
             Minutes = 1;
             Risk = -10;
-            Type = RecommendationType.Day;
+            Type = RecommendationTypeEnum.Day;
         }
 
-        public Position(string symbol, decimal orderPrice, decimal quantity, RecommendationType type)
+        public Position(string symbol, decimal orderPrice, decimal quantity, RecommendationTypeEnum type)
         {
             Symbol = symbol.Trim();
             Valorization = 0;
@@ -72,15 +72,15 @@ namespace Trade02.Models.Trade
             Type = type;
         }
 
-        private decimal ValidateRisk(RecommendationType type)
+        private decimal ValidateRisk(RecommendationTypeEnum type)
         {
             switch (type)
             {
-                case RecommendationType.Day:
+                case RecommendationTypeEnum.Day:
                     return -3;
-                case RecommendationType.Hour:
+                case RecommendationTypeEnum.Hour:
                     return -2;
-                case RecommendationType.Minute:
+                case RecommendationTypeEnum.Minute:
                     return -1;
                 default:
                     return -2;
@@ -88,7 +88,7 @@ namespace Trade02.Models.Trade
         }
     }
 
-    public enum RecommendationType
+    public enum RecommendationTypeEnum
     {
         Day = 0,
         Hour = 1,
