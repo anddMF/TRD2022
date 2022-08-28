@@ -5,7 +5,8 @@
 ### 🚧 Next features:
 - [x] File to recover open positions
 - [x] Engines switches in appsettings.json
-- [ ] Queue/Topic communication (SQS and Kafka)
+- [x] Kafka Topic communication
+- [ ] Queue communication (SQS)
 - [x] Dummy version (application only simulate the trades)
 
 <hr>

@@ -18,7 +18,7 @@ using static Trade02.Infra.Cross.ReportLog;
 namespace Trade02.Business.services
 {
     /// <summary>
-    /// Responsável por manipular dados da carteira de investimentos.
+    /// Responsible for the management of the assets.
     /// </summary>
     public class PortfolioService : IPortfolioService
     {
@@ -56,13 +56,14 @@ namespace Trade02.Business.services
         private async void TrasmitTradeEvent(TradeEventType type, string message, Position position = null)
         {
             bool sent = await _eventsOutput.SendEvent(new TradeEvent(type, DateTime.Now, message, position));
-            // TODO: treatment for a event not sent
+            // TODO: treatment for an event not sent
         }
 
         /// <summary>
-        /// Motor de manipulação das posições em aberto e recomendadas. A partir de certas condições, determina o sell ou hold da posição.
+        /// Engine for the managing of open positions and recommended ones. Based on certain conditions, it makes the decision for a sell or hold call, also, initiates the process 
+        /// for a buy call on another engine.
         /// </summary>
-        /// <param name="opp">oportunidades de compra</param>
+        /// <param name="opp">opportunities </param>
         /// <param name="positions">posições que já estão em aberto</param>
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
@@ -73,7 +74,7 @@ namespace Trade02.Business.services
             int stopCounter = 0;
             var sold = new List<string>();
 
-            // se já tiver passado do cap de profit, ele diminuiu o sellPercentage para poder sair mais rápido das posições em aberto
+            // if surpass the maximum cap of profits, it decreases the sellPercentage so it can get out of open positions more quickly
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.1;
             else
@@ -221,6 +222,7 @@ namespace Trade02.Business.services
                     }
                 }
                 #endregion
+
                 return new ManagerResponse(opp, positions, toMonitor);
             }
             catch (Exception ex)
@@ -231,7 +233,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Calculate
+        /// Calculate how many spots are available for each type of recommendation.
         /// </summary>
         private void MaxPositionsPerType()
         {
@@ -256,6 +258,11 @@ namespace Trade02.Business.services
             }
         }
 
+        /// <summary>
+        /// Updates the spots left for new positions per type of recommendation. Based on the current open positions, determines how many spots are left for each type of recommendation and stores
+        /// it on global variables.
+        /// </summary>
+        /// <param name="positions">current open positions</param>
         private void UpdateOpenPositionsPerType(List<Position> positions)
         {
             openDayPositions = 0;
@@ -282,14 +289,14 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Executa a venda a partir de um motor de decisão.
+        /// Executes a sell call based on certain validations and attempts.
         /// </summary>
         /// <param name="symbol"></param>
         /// <param name="quantity"></param>
         /// <returns></returns>
         public async Task<BinancePlacedOrder> ExecuteSellOrder(string symbol, decimal quantity)
         {
-            Console.WriteLine("#### Entrou VENDA");
+            Console.WriteLine("#### entered SELL");
             decimal prevPrice = 0;
             int j = 0;
 
@@ -298,11 +305,11 @@ namespace Trade02.Business.services
                 await Task.Delay(2000);
                 var market = await _clientSvc.GetTicker(symbol);
                 decimal price = market.AskPrice;
-                Console.WriteLine($"Preco {symbol}: {price}");
+                Console.WriteLine($"Price {symbol}: {price}");
 
                 if (j > 0 && price > prevPrice)
                 {
-                    Console.WriteLine("\n Caiu venda SUBINDO\n");
+                    Console.WriteLine("\n entered sell but going up\n");
 
                     var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
@@ -316,7 +323,7 @@ namespace Trade02.Business.services
                 j++;
             }
 
-            Console.WriteLine("\n Caiu venda FINAL\n");
+            Console.WriteLine("\n entered last chance of sell\n");
 
             var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
@@ -329,7 +336,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Retorna as posições em aberto, caso existam, da última execução interrompida do robô.
+        /// Returns the positions that remained open from the last execution of the TRD2022.
         /// </summary>
         /// <returns></returns>
         public List<Position> GetLastPositions()
@@ -342,26 +349,25 @@ namespace Trade02.Business.services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
+                _logger.LogError($"ERROR: {DateTime.Now}, method: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
-
         }
 
 
         /// <summary>
-        /// Faz a validação se vale ou não a pena vender o ativo, caso sim, determina o momento a partir de certas validações e executa.
+        /// Balances if it is a good moment to sell an asset, if yes, determines a moment to sell it based on certain validations and make the call.
         /// </summary>
-        /// <param name="position">posição que será validada</param>
-        /// <param name="currentValorization">variação atual</param>
-        /// <param name="market">dados atuais de mercado da posição</param>
+        /// <param name="position">open position</param>
+        /// <param name="currentValorization">current valorization</param>
+        /// <param name="market">current market data from the position</param>
         /// <returns></returns>
         public async Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market)
         {
-            Console.WriteLine("\nCaiu venda");
+            Console.WriteLine("\n #### entered sell validation");
             if (position.Valorization >= AppSettings.TradeConfiguration.SellPercentage)
             {
-                Console.WriteLine("\nCaiu validacao venda acima de 1");
+                Console.WriteLine("\n entered sell above sellPercentage");
 
                 // esse if mantinha a posição se a valorização atual fosse maior que 0.3 porque poderia ser uma tendencia de subida
                 //if (currentValorization <= (decimal)0.3)
@@ -405,7 +411,7 @@ namespace Trade02.Business.services
             }
             else if (currentValorization + position.Valorization <= position.Risk)
             {
-                Console.WriteLine("\nCaiu venda RISCO");
+                Console.WriteLine("\n entered sell validation with RISK condition");
                 // executeSellOrder
                 var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 if (order != null)
@@ -430,7 +436,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Executa as ordens de compras que cumpram as condições necessárias para tal.
+        /// Executes multiple orders based on certain condidtions.
         /// </summary>
         /// <returns></returns>
         public async Task<OrderResponse> ExecuteMulitpleOrder(List<string> symbols)
@@ -494,10 +500,10 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Executa uma ordem de compra que cumpra as condições necessárias para tal.
+        /// Executes a single buy order that meets the constraints for it.
         /// </summary>
-        /// <param name="symbol">símbolo que tentará ser comprado</param>
-        /// <param name="type">utilizado para o log</param>
+        /// <param name="symbol">symbol for the order</param>
+        /// <param name="type"></param>
         /// <returns></returns>
         public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type)
         {
@@ -543,6 +549,13 @@ namespace Trade02.Business.services
             return position.Data != null ? position : null;
         }
 
+        /// <summary>
+        /// Executes a single buy order that meets the constraints for it and the minimum price.
+        /// </summary>
+        /// <param name="symbol">symbol for the order</param>
+        /// <param name="type"></param>
+        /// <param name="minPrice"></param>
+        /// <returns></returns>
         public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationType type, decimal minPrice)
         {
             decimal quantity = await GetUSDTAmount();
@@ -566,7 +579,6 @@ namespace Trade02.Business.services
 
                     if (order == null)
                     {
-                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
                         //_logger.LogWarning($"#### #### #### #### #### #### ####\n\t### PURCHASE OF {symbol} NOT EXECUTED ###\n\t#### #### #### #### #### #### ####");
                         TrasmitTradeEvent(TradeEventType.Error, $"PURCHASE OF {symbol} NOT EXECUTED");
                     }
@@ -619,7 +631,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Get dos balanços das moedas em carteira.
+        /// Gets the balance from the assets on the wallet.
         /// </summary>
         /// <returns></returns>
         public async Task<List<BinanceBalance>> GetBalance()
@@ -639,7 +651,7 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Get do balanço de uma moeda em carteira.
+        /// Gets the balance from one specific asset on the wallet.
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns></returns>
