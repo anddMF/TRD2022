@@ -68,5 +68,6 @@ namespace Trade02.Models.CrossCutting
     {
         public string BootstrapServer { get; set; }
         public string Topic { get; set; }
+        public bool Enabled { get; set; }
     }
 }
