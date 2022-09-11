@@ -36,12 +36,12 @@ namespace Trade02.Infra.DAL
                     BootstrapServers = bootstrapServer
                 };
 
-                using (var producer = new ProducerBuilder<string, TradeEventDAO>(config).Build())
+                using (var producer = new ProducerBuilder<Null, string>(config).Build())
                 {
                     int tries = 3;
                     bool delivered = false;
 
-                    var record = new Message<string, TradeEventDAO> { Value = payload.GenerateRecord() };
+                    var record = new Message<Null, string> { Value = payload.GenerateRecordJson() };
 
                     while (tries > 0 || delivered == false)
                     {
