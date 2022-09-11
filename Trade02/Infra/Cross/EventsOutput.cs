@@ -30,6 +30,7 @@ namespace Trade02.Infra.Cross
         public async Task<bool> SendEvent(TradeEvent message)
         {
             bool result = false;
+
             if(isKafkaEnabled)
             {
                 // in a future avro (kafka), or anything related, this will be the layer responsible for the transformation of the object

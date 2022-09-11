@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Trade02.Infra.DAO;
@@ -19,7 +20,7 @@ namespace Trade02.Models.Trade
 
         public TradeEvent(TradeEventType eventType, DateTime timestamp, string payload, Position position = null)
         {
-            if(position != null && (eventType != TradeEventType.SELL || eventType != TradeEventType.BUY))
+            if((eventType == TradeEventType.SELL || eventType == TradeEventType.BUY) && position == null)
                 throw new ArgumentException("On a TradeEventType Sell or Buy, position must be a not null object");
 
             PositionData = position;
@@ -44,22 +45,36 @@ namespace Trade02.Models.Trade
             return $"VENDA: {DateTime.Now}, moeda: {PositionData.Symbol}, total valorization: {PositionData.Valorization}, final price: {PositionData.LastPrice}, initial price: {PositionData.InitialPrice}, type: {PositionData.Type}";
         }
 
-        public TradeEventDAO GenerateRecord()
+        public TradeEventDAO GenerateRecordDAO()
         {
-            var record = new TradeEventDAO();
-
-            record.client_id = 0;
-            record.asset = PositionData.Symbol;
-            record.event_type = (EventType) EventType;
-            record.rec_type = (RecommendationType)PositionData.Type;
-            record.initial_price = PositionData.InitialPrice;
-            record.final_price = PositionData.LastPrice;
-            record.quantity = PositionData.Quantity;
-            record.valorization = PositionData.Valorization;
-            record.timestamp = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
-            record.message = Payload;
-
+            TradeEventDAO record = TransformToDAO();
             return record;
+        }
+
+        public string GenerateRecordJson()
+        {
+            string record = JsonConvert.SerializeObject(TransformToDAO());
+            return record;
+        }
+
+        private TradeEventDAO TransformToDAO()
+        {
+            var dao = new TradeEventDAO();
+
+            dao.client_id = 1;
+            dao.event_type = (EventType)EventType;
+
+            dao.asset = PositionData != null ? PositionData.Symbol : "";
+            dao.rec_type = PositionData != null ? (RecommendationType)PositionData.Type : RecommendationType.MINUTE;
+            dao.initial_price = PositionData != null ? PositionData.InitialPrice : decimal.Zero;
+            dao.final_price = PositionData != null ? PositionData.LastPrice : decimal.Zero;
+            dao.quantity = PositionData != null ? PositionData.Quantity : decimal.Zero;
+            dao.valorization = PositionData != null ? PositionData.Valorization : decimal.Zero;
+
+            dao.timestamp = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+            dao.message = Payload;
+
+            return dao;
         }
     }
 }
