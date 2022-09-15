@@ -34,5 +34,5 @@ Managing when and how to call these engines is the main feature in TRD, besides 
   
   ⚠️ TRD is a working in progress and this is already the third version of the robot in four months, everything can be different in the next weeks but, for now, this version is the most solid in profits so far. ⚠️
  
- ![teste teste](assets/trd_diagram.png)
+ ![trd diagram](assets/trd_diagram.png)
  
