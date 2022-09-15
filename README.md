@@ -33,5 +33,6 @@ Managing when and how to call these engines is the main feature in TRD, besides 
   This is a simple high level explanation of TRD, just to give it a north for searching things on the code. For example, I didn't talked about the balance the code does on the amount of USDT it uses on every operation and how the configuration of the robot on the appsettings.json can change the whole application.
   
   ⚠️ TRD is a working in progress and this is already the third version of the robot in four months, everything can be different in the next weeks but, for now, this version is the most solid in profits so far. ⚠️
-  
+ 
+ ![teste teste](assets/trd_diagram.png)
  
