@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Trade02.Business.services;
 using Trade02.Business.services.Interfaces;
+using Trade02.Infra.Cross;
 using Trade02.Models.CrossCutting;
 using Trade02.Models.Trade;
 
@@ -22,6 +23,7 @@ namespace Trade02
         private static IMarketService _marketSvc;
         private static IPortfolioService _portfolioSvc;
         private static IRecommendationService _recSvc;
+        private static IEventsOutput _eventsOutput;
 
         private readonly string currency = AppSettings.TradeConfiguration.Currency;
         private readonly int maxToMonitor = AppSettings.TradeConfiguration.MaxToMonitor;
@@ -30,12 +32,18 @@ namespace Trade02
 
         private decimal currentProfit = AppSettings.TradeConfiguration.CurrentProfit;
 
-        public Worker(ILogger<Worker> logger, IPortfolioService portfolioService, IMarketService marketSvc, IRecommendationService recSvc)
+        public Worker(ILogger<Worker> logger, IPortfolioService portfolioService, IMarketService marketSvc, IRecommendationService recSvc, IEventsOutput eventsOutput)
         {
             _logger = logger;
             _marketSvc = marketSvc;
             _portfolioSvc = portfolioService;
             _recSvc = recSvc;
+            _eventsOutput = eventsOutput;
+        }
+
+        private async void TransmitEvent(TradeEventType type, string message, Position position = null)
+        {
+            bool sent = await _eventsOutput.SendEvent(new TradeEvent(type, DateTime.Now, message, position));
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -60,7 +68,7 @@ namespace Trade02
                 var opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket, true, true, true);
 
                 Console.WriteLine("----------------- Initial list captured ------------------\n");
-
+                TransmitEvent(TradeEventType.START, "");
                 while (runner)
                 {
                     Console.WriteLine($"----###### WORKER: positions {openPositions.Count}\n");
@@ -84,6 +92,7 @@ namespace Trade02
                         }
                     } else if (openPositions.Count == 0){
                         _logger.LogInformation($"\n\t ###### Reached the maximum profit ###### \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+                        TransmitEvent(TradeEventType.FINISH, $"Reached the maximum profit: {AppSettings.TradeConfiguration.CurrentProfit}:{AppSettings.TradeConfiguration.CurrentUSDTProfit}");
                         runner = false;
                     }
                 }
@@ -92,6 +101,7 @@ namespace Trade02
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: ExecuteAsync(), message: {ex.Message}, \n stack: {ex.StackTrace}");
+                TransmitEvent(TradeEventType.FINISH, "");
                 throw ex;
             }
         }
