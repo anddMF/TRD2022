@@ -53,7 +53,7 @@ namespace Trade02.Business.services
         /// <param name="type"></param>
         /// <param name="message"></param>
         /// <param name="position"></param>
-        private async void TrasmitTradeEvent(TradeEventType type, string message, Position position = null)
+        private async void TransmitTradeEvent(TradeEventType type, string message, Position position = null)
         {
             bool sent = await _eventsOutput.SendEvent(new TradeEvent(type, DateTime.Now, message, position));
             // TODO: treatment for an event not sent
@@ -80,7 +80,9 @@ namespace Trade02.Business.services
             else
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.6;
 
-            TrasmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+            //TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+            Console.WriteLine($"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
             try
             {
                 #region manage open positions
@@ -100,6 +102,7 @@ namespace Trade02.Business.services
                         var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
                         if (responseSell != null)
                         {
+                            TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
                             sold.Add(responseSell.Symbol);
 
                             int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
@@ -133,6 +136,8 @@ namespace Trade02.Business.services
                                 {
                                     // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
                                     //positions[i] = responseSell;
+                                    TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
                                     sold.Add(responseSell.Symbol);
                                     int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
                                     if (index > -1)
@@ -171,10 +176,10 @@ namespace Trade02.Business.services
                             var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationTypeEnum.Minute);
                             if (res != null)
                             {
+                                TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
                                 alreadyUsed.Add(opp.Minutes[i].Symbol);
-
                                 openMinutePositions++;
-
                                 res.Risk = -1;
                                 positions.Add(res);
 
@@ -190,10 +195,10 @@ namespace Trade02.Business.services
                             var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationTypeEnum.Day);
                             if (res != null)
                             {
+                                TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
                                 alreadyUsed.Add(opp.Days[i].Symbol);
-
                                 openDayPositions++;
-
                                 res.Risk = -3;
                                 positions.Add(res);
 
@@ -209,10 +214,10 @@ namespace Trade02.Business.services
                             var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationTypeEnum.Hour);
                             if (res != null)
                             {
+                                TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
                                 alreadyUsed.Add(opp.Hours[i].Symbol);
-
                                 openHourPositions++;
-
                                 res.Risk = -2;
                                 positions.Add(res);
 
@@ -314,7 +319,7 @@ namespace Trade02.Business.services
                     var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
                     if (order == null)
-                        TrasmitTradeEvent(TradeEventType.ERROR, $"SELL OF {symbol} NOT EXECUTED");
+                        TransmitTradeEvent(TradeEventType.ERROR, $"SELL OF {symbol} NOT EXECUTED");
                     else
                         return order;
                 }
@@ -328,7 +333,7 @@ namespace Trade02.Business.services
             var final = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
             if (final == null)
-                TrasmitTradeEvent(TradeEventType.ERROR, $"SELL OF {symbol} NOT EXECUTED");
+                TransmitTradeEvent(TradeEventType.ERROR, $"SELL OF {symbol} NOT EXECUTED");
             else
                 return final;
 
@@ -398,7 +403,7 @@ namespace Trade02.Business.services
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
                     //_logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
-                    TrasmitTradeEvent(TradeEventType.SELL, "", position);
+                    TransmitTradeEvent(TradeEventType.SELL, "", position);
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
@@ -421,7 +426,7 @@ namespace Trade02.Business.services
                     position.LastValue = position.Quantity * order.Price;
                     position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
                     // _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
-                    TrasmitTradeEvent(TradeEventType.SELL, "", position);
+                    TransmitTradeEvent(TradeEventType.SELL, "", position);
 
                     ReportLog.WriteReport(logType.VENDA, position);
                     //position = new Position(market, order.Price, order.Quantity);
@@ -466,7 +471,7 @@ namespace Trade02.Business.services
                         var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
                         if (order == null)
                         {
-                            TrasmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
+                            TransmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
                         }
                         else
                         {
@@ -476,7 +481,7 @@ namespace Trade02.Business.services
                             Position position = new Position(market, order.Price, order.Quantity);
                             openPositions.Add(position);
 
-                            TrasmitTradeEvent(TradeEventType.BUY, "", position);
+                            TransmitTradeEvent(TradeEventType.BUY, "", position);
                             ReportLog.WriteReport(logType.COMPRA, position);
                             j = 10;
                         }
@@ -528,7 +533,7 @@ namespace Trade02.Business.services
 
                     if (order == null)
                     {
-                        TrasmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
+                        TransmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
                     }
                     else
                     {
@@ -536,7 +541,7 @@ namespace Trade02.Business.services
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
-                        TrasmitTradeEvent(TradeEventType.BUY, "", position);
+                        TransmitTradeEvent(TradeEventType.BUY, "", position);
                         ReportLog.WriteReport(logType.COMPRA, position);
                         j = 10;
                     }
@@ -580,7 +585,7 @@ namespace Trade02.Business.services
                     if (order == null)
                     {
                         //_logger.LogWarning($"#### #### #### #### #### #### ####\n\t### PURCHASE OF {symbol} NOT EXECUTED ###\n\t#### #### #### #### #### #### ####");
-                        TrasmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
+                        TransmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
                     }
                     else
                     {
@@ -588,7 +593,7 @@ namespace Trade02.Business.services
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
-                        TrasmitTradeEvent(TradeEventType.BUY, "", position);
+                        TransmitTradeEvent(TradeEventType.BUY, "", position);
                         ReportLog.WriteReport(logType.COMPRA, position);
                         j = 10;
                     }
@@ -623,7 +628,7 @@ namespace Trade02.Business.services
 
             if (quantity < minUSDT && supportQuantity < minUSDT)
             {
-                TrasmitTradeEvent(TradeEventType.ERROR, "INSUFFICIENT USDT BALANCE FOR PURCHASES");
+                TransmitTradeEvent(TradeEventType.ERROR, "INSUFFICIENT USDT BALANCE FOR PURCHASES");
                 return 0;
             }
 

@@ -8,7 +8,7 @@ namespace Trade02.Models.Trade
 {
     public enum TradeEventType
     {
-        BUY, SELL, INFO, ERROR
+        BUY, SELL, INFO, ERROR, START, FINISH
     }
 
     public class TradeEvent
@@ -26,6 +26,7 @@ namespace Trade02.Models.Trade
             PositionData = position;
             Timestamp = timestamp;
             EventType = eventType;
+            // Payload = Payload;
 
             if (eventType == TradeEventType.BUY)
                 Payload = PayloadFromBuy();
