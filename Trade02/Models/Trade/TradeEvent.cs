@@ -8,7 +8,7 @@ namespace Trade02.Models.Trade
 {
     public enum TradeEventType
     {
-        BUY = 1, SELL, INFO, ERROR, START, FINISH
+        BUY = 1, SELL, FORCESELL, INFO, ERROR, START, FINISH
     }
 
     public class TradeEvent

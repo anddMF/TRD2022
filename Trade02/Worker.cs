@@ -78,7 +78,7 @@ namespace Trade02
                     openPositions = manager.OpenPositions;
                     toMonitor = manager.ToMonitor;
 
-                    await Task.Delay(20000, stoppingToken);
+                    await Task.Delay(15000, stoppingToken);
 
                     if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit)
                     {

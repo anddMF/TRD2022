@@ -59,6 +59,27 @@ namespace Trade02.Business.services
             // TODO: treatment for an event not sent
         }
 
+        private async Task<bool> ExecuteForceSell(Position position)
+        {
+            var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
+            if (order != null)
+            {
+                position.LastPrice = order.Price;
+                position.LastValue = position.Quantity * order.Price;
+                position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
+                TransmitTradeEvent(TradeEventType.SELL, "", position);
+
+                ReportLog.WriteReport(logType.VENDA, position);
+                
+                AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
+                AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
+
+                WalletManagement.RemovePositionFromFile(position.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+                return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// Engine for the managing of open positions and recommended ones. Based on certain conditions, it makes the decision for a sell or hold call, also, initiates the process 
         /// for a buy call on another engine.
@@ -68,6 +89,30 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
+            List<string> toSellList = WalletManagement.GetSellPositionFromFile();
+            if (toSellList.Count > 0)
+            {
+                if (toSellList[0].ToLower() == "shut down")
+                {
+                    // TODO: SELL ALL OPEN POSITIONS AND FINISH THE APP
+                    foreach(Position position in positions)
+                        await ExecuteForceSell(position);
+                    
+                    Environment.Exit(0);
+                } else
+                {
+                    foreach(string toSell in toSellList)
+                    {
+                        var position = positions.Find(x => x.Symbol.ToLower().StartsWith(toSell.ToLower()));
+                        bool res = await ExecuteForceSell(position);
+
+                        if (res)
+                            positions.RemoveAll(x => x.Symbol == position.Symbol);
+                    }
+
+                }
+            }
+
             HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
             UpdateOpenPositionsPerType(positions);
 
@@ -78,7 +123,7 @@ namespace Trade02.Business.services
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.1;
             else
-                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.6;
+                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.5;
 
             //TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             Console.WriteLine($"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
@@ -91,7 +136,7 @@ namespace Trade02.Business.services
                     var market = await _clientSvc.GetTicker(positions[i].Symbol);
                     decimal currentPrice = market.AskPrice;
 
-                    decimal currentValorization = ValorizationCalculation(positions[i].LastPrice, currentPrice);
+                    decimal currentValorization = ValorizationCalc(positions[i].LastPrice, currentPrice);
 
                     bool stop = false;
 
@@ -122,8 +167,8 @@ namespace Trade02.Business.services
                             market = await _clientSvc.GetTicker(positions[i].Symbol);
                             currentPrice = market.AskPrice;
 
-                            currentValorization = ValorizationCalculation(positions[i].LastPrice, currentPrice);
-                            positions[i].Valorization = ValorizationCalculation(positions[i].InitialPrice, currentPrice);
+                            currentValorization = ValorizationCalc(positions[i].LastPrice, currentPrice);
+                            positions[i].Valorization = ValorizationCalc(positions[i].InitialPrice, currentPrice);
                             Console.WriteLine("valorizacao somada: " + positions[i].Valorization);
 
                             if (positions[i].Valorization >= AppSettings.TradeConfiguration.SellPercentage)
@@ -158,7 +203,7 @@ namespace Trade02.Business.services
                         }
                     }
 
-                    positions[i].Valorization = ValorizationCalculation(positions[i].InitialPrice, currentPrice);
+                    positions[i].Valorization = ValorizationCalc(positions[i].InitialPrice, currentPrice);
                 }
 
                 foreach (var obj in sold)
@@ -180,7 +225,7 @@ namespace Trade02.Business.services
 
                                 alreadyUsed.Add(opp.Minutes[i].Symbol);
                                 openMinutePositions++;
-                                res.Risk = -1;
+                                res.Risk = (decimal)-0.5;
                                 positions.Add(res);
 
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
@@ -398,10 +443,9 @@ namespace Trade02.Business.services
                 var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 if (order != null)
                 {
-                    // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
-                    position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
+                    position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
                     //_logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                     TransmitTradeEvent(TradeEventType.SELL, "", position);
 
@@ -424,7 +468,7 @@ namespace Trade02.Business.services
                     // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
                     position.LastPrice = order.Price;
                     position.LastValue = position.Quantity * order.Price;
-                    position.Valorization = ValorizationCalculation(position.InitialPrice, order.Price);
+                    position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
                     // _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                     TransmitTradeEvent(TradeEventType.SELL, "", position);
 
@@ -676,7 +720,7 @@ namespace Trade02.Business.services
 
         }
 
-        private decimal ValorizationCalculation(decimal basePrice, decimal currentPrice)
+        private decimal ValorizationCalc(decimal basePrice, decimal currentPrice)
         {
             return ((currentPrice - basePrice) / basePrice) * 100;
         }

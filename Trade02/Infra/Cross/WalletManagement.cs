@@ -10,7 +10,8 @@ namespace Trade02.Infra.Cross
     public class WalletManagement
     {
         private static readonly string folderPath = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\WALLET");
-        private static readonly string filePath = $"{folderPath}\\positions.csv";
+        private static readonly string positionsFilePath = $"{folderPath}\\positions.csv";
+        private static readonly string sellFilePath = $"{folderPath}\\positionsToSell.csv";
         public static bool AddPositionToFile(Position position, decimal currentProfit, decimal currentUSDTProfit)
         {
             try
@@ -18,13 +19,13 @@ namespace Trade02.Infra.Cross
                 if (!Directory.Exists(folderPath))
                     Directory.CreateDirectory(folderPath);
 
-                if (!File.Exists(filePath))
+                if (!File.Exists(positionsFilePath))
                 {
-                    CreateFile(position, currentProfit, currentUSDTProfit, filePath);
+                    CreateFile(position, currentProfit, currentUSDTProfit, positionsFilePath);
                 }
                 else
                 {
-                    using (StreamWriter sw = File.AppendText(filePath))
+                    using (StreamWriter sw = File.AppendText(positionsFilePath))
                     {
                         sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit}; {currentUSDTProfit}");
                     }
@@ -43,7 +44,7 @@ namespace Trade02.Infra.Cross
             var filePositions = GetPositionFromFile();
             filePositions = filePositions.FindAll(x => x.Symbol != symbol);
 
-            File.Delete(filePath);
+            File.Delete(positionsFilePath);
 
             if (filePositions.Count > 0)
             {
@@ -75,10 +76,10 @@ namespace Trade02.Infra.Cross
                 if (!Directory.Exists(folderPath))
                     return null;
 
-                if (!File.Exists(filePath))
+                if (!File.Exists(positionsFilePath))
                     return null;
 
-                positions = File.ReadAllLines(filePath).Skip(1).Select(x => TransformLineIntoPosition(x)).ToList();
+                positions = File.ReadAllLines(positionsFilePath).Skip(1).Select(x => TransformLineIntoPosition(x)).ToList();
 
                 return positions;
             }
@@ -87,6 +88,21 @@ namespace Trade02.Infra.Cross
                 Console.WriteLine("ERRO ao restaurar posicoes: " + ex.Message);
                 throw ex;
             }
+        }
+
+        public static List<string> GetSellPositionFromFile()
+        {
+            if (!Directory.Exists(folderPath))
+                return null;
+
+            if (!File.Exists(sellFilePath))
+                return null;
+
+            var toSellList = File.ReadAllLines(sellFilePath).ToList();
+            toSellList = toSellList.Count > 0 ? toSellList[0].Split(';').ToList() : toSellList;
+            File.WriteAllText(sellFilePath, string.Empty);
+
+            return toSellList;
         }
 
         private static Position TransformLineIntoPosition(string line)
