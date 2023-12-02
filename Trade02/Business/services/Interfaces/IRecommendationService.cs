@@ -19,7 +19,7 @@ namespace Trade02.Business.services.Interfaces
         /// <param name="hours">switch to check for opportunities of type 'hours'</param>
         /// <param name="minutes">switch to check for opportunities of type 'minutes'</param>
         /// <returns></returns>
-        public Task<OpportunitiesResponse> CheckOpportunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes);
+        public Task<OpportunitiesResponse> CheckOpportunitiesByKlines(List<IBinanceTick> currentMarket);
 
         /// <summary>
         /// Verifies if the symbol has a favorable buy status based on it's last klines.

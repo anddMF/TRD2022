@@ -53,10 +53,6 @@ namespace Trade02
             {
                 bool runner = true;
 
-                bool days = true;
-                bool hours = true;
-                bool minutes = true;
-
                 List<Position> toMonitor = new List<Position>();
 
                 var alreadyOpenPositions = _portfolioSvc.GetLastPositions();
@@ -65,13 +61,13 @@ namespace Trade02
                 List<string> ownedSymbols = AppSettings.TradeConfiguration.OwnedSymbols;
 
                 List<IBinanceTick> currentMarket = await _marketSvc.GetTopPercentages(maxToMonitor, currency, maxSearchPercentage, ownedSymbols);
-                var opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket, true, true, true);
+                var opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket);
 
-                Console.WriteLine("----------------- Initial list captured ------------------\n");
+                Console.WriteLine("----###### Initial list captured ######----\n");
                 TransmitEvent(TradeEventType.START, "");
                 while (runner)
                 {
-                    Console.WriteLine($"\n----###### WORKER: positions {openPositions.Count} - {DateTime.Now.ToString("H:mm:ss")}");
+                    Console.WriteLine($"\n----###### WORKER: positions {openPositions.Count} - {DateTime.Now.ToString("H:mm:ss")} ######----");
 
                     var manager = await _portfolioSvc.ManagePosition(opp, openPositions, toMonitor);
 
@@ -86,17 +82,16 @@ namespace Trade02
                             _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### Reached the maximum number of open positions ####\n\t#### #### #### #### #### #### ####\n");
                         else
                         {
-                            opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket, days, hours, minutes);
+                            opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket);
                             if (toMonitor.Count > 0)
                                 opp = _recSvc.RepurchaseValidation(opp, toMonitor);
                         }
                     } else if (openPositions.Count == 0){
-                        _logger.LogInformation($"\n\t ###### Reached the maximum profit ###### \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+                        _logger.LogInformation($"\n\t ----###### Reached the maximum profit ######---- \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
                         TransmitEvent(TradeEventType.FINISH, $"Reached the maximum profit: {AppSettings.TradeConfiguration.CurrentProfit}:{AppSettings.TradeConfiguration.CurrentUSDTProfit}");
                         runner = false;
                     }
                 }
-
             }
             catch (Exception ex)
             {

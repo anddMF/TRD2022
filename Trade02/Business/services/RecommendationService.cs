@@ -93,7 +93,7 @@ namespace Trade02.Business.services
         /// <param name="hours">switch to check for opportunities of type 'hours'</param>
         /// <param name="minutes">switch to check for opportunities of type 'minutes'</param>
         /// <returns></returns>
-        public async Task<OpportunitiesResponse> CheckOpportunitiesByKlines(List<IBinanceTick> currentMarket, bool days, bool hours, bool minutes)
+        public async Task<OpportunitiesResponse> CheckOpportunitiesByKlines(List<IBinanceTick> currentMarket)
         {
             // falta uma validação para recomendações repetidas em diferentes tipos
             HashSet<string> alreadyUsed = new HashSet<string>();
@@ -103,7 +103,7 @@ namespace Trade02.Business.services
             List<IBinanceTick> minutesList = new List<IBinanceTick>();
 
             // o filtro do dia pega so de ontem, entao a moeda pode estar em queda hoje que ele nao vai pegar
-            if (days && dayConfig)
+            if (dayConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
@@ -119,7 +119,7 @@ namespace Trade02.Business.services
             }
 
 
-            if (hours && hourConfig)
+            if (hourConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
@@ -135,7 +135,7 @@ namespace Trade02.Business.services
             }
 
 
-            if (minutes && minuteConfig)
+            if (minuteConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
                 {

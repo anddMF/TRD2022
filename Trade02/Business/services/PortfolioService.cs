@@ -90,13 +90,14 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            List<string> toSellList = WalletManagement.GetSellPositionFromFile();
             Console.WriteLine("Recommendation count: " + opp.Minutes.Count);
+
+            // File where the user can write which symbol to sell or to shut down the program
+            List<string> toSellList = WalletManagement.GetSellPositionFromFile();
             if (toSellList.Count > 0)
             {
                 if (toSellList[0].ToLower() == "shut down")
                 {
-                    // TODO: SELL ALL OPEN POSITIONS AND FINISH THE APP
                     foreach(Position position in positions)
                         await ExecuteForceSell(position);
                     
@@ -111,7 +112,6 @@ namespace Trade02.Business.services
                         if (res)
                             positions.RemoveAll(x => x.Symbol == position.Symbol);
                     }
-
                 }
             }
 
@@ -216,62 +216,9 @@ namespace Trade02.Business.services
 
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
-                    for (int i = 0; i < opp.Minutes.Count && openMinutePositions < AppSettings.EngineConfiguration.MaxMinutePositions && positions.Count < maxOpenPositions; i++)
-                    {
-                        if (!alreadyUsed.Contains(opp.Minutes[i].Symbol))
-                        {
-                            var res = await ExecuteSimpleOrder(opp.Minutes[i].Symbol, RecommendationTypeEnum.Minute);
-                            if (res != null)
-                            {
-                                TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-
-                                alreadyUsed.Add(opp.Minutes[i].Symbol);
-                                openMinutePositions++;
-                                res.Risk = (decimal)-0.3;
-                                positions.Add(res);
-
-                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
-                            }
-                        }
-                    }
-
-                    for (int i = 0; i < opp.Days.Count && openDayPositions < AppSettings.EngineConfiguration.MaxDayPositions && positions.Count < maxOpenPositions; i++)
-                    {
-                        if (!alreadyUsed.Contains(opp.Days[i].Symbol))
-                        {
-                            var res = await ExecuteSimpleOrder(opp.Days[i].Symbol, RecommendationTypeEnum.Day);
-                            if (res != null)
-                            {
-                                TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-
-                                alreadyUsed.Add(opp.Days[i].Symbol);
-                                openDayPositions++;
-                                res.Risk = -3;
-                                positions.Add(res);
-
-                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
-                            }
-                        }
-                    }
-
-                    for (int i = 0; i < opp.Hours.Count && openHourPositions < AppSettings.EngineConfiguration.MaxHourPositions && positions.Count < maxOpenPositions; i++)
-                    {
-                        if (!alreadyUsed.Contains(opp.Hours[i].Symbol))
-                        {
-                            var res = await ExecuteSimpleOrder(opp.Hours[i].Symbol, RecommendationTypeEnum.Hour);
-                            if (res != null)
-                            {
-                                TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-
-                                alreadyUsed.Add(opp.Hours[i].Symbol);
-                                openHourPositions++;
-                                res.Risk = -2;
-                                positions.Add(res);
-
-                                WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
-                            }
-                        }
-                    }
+                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.3, RecommendationTypeEnum.Minute, alreadyUsed);
+                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, -2, RecommendationTypeEnum.Hour, alreadyUsed);
+                    positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day, alreadyUsed);
                 }
                 #endregion
 
@@ -282,6 +229,30 @@ namespace Trade02.Business.services
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return new ManagerResponse(opp, positions, toMonitor);
             }
+        }
+
+        private async Task<List<Position>> ExecuteOrder(List<Position> positions, List<IBinanceTick> symbols, int maxPositions, int maxOpenPositions, int openPositions, decimal riskLevel, RecommendationTypeEnum recommendationType, HashSet<string> alreadyUsed)
+        {
+            for (int i = 0; i < symbols.Count && openPositions < maxOpenPositions && positions.Count < maxPositions; i++)
+            {
+                if (!alreadyUsed.Contains(symbols[i].Symbol))
+                {
+                    var res = await ExecuteSimpleOrder(symbols[i].Symbol, recommendationType);
+                    if (res != null)
+                    {
+                        TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
+                        alreadyUsed.Add(symbols[i].Symbol);
+                        openPositions++;
+                        res.Risk = riskLevel;
+                        positions.Add(res);
+
+                        WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+                    }
+                }
+            }
+
+            return positions;
         }
 
         /// <summary>
@@ -658,9 +629,7 @@ namespace Trade02.Business.services
         public async Task<decimal> GetUSDTAmount()
         {
             if (freeMode)
-            {
                 return maxBuyAmount;
-            }
 
             var balance = await GetBalance("USDT");
 
