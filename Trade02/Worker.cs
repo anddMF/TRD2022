@@ -71,7 +71,7 @@ namespace Trade02
                 TransmitEvent(TradeEventType.START, "");
                 while (runner)
                 {
-                    Console.WriteLine($"\n----###### WORKER: positions {openPositions.Count}");
+                    Console.WriteLine($"\n----###### WORKER: positions {openPositions.Count} - {DateTime.Now.ToString("H:mm:ss")}");
 
                     var manager = await _portfolioSvc.ManagePosition(opp, openPositions, toMonitor);
 
