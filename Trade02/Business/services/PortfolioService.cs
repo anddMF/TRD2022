@@ -39,6 +39,7 @@ namespace Trade02.Business.services
         private int openMinutePositions = 0;
 
         private HashSet<string> alreadyUsed;
+        private List<string> sold;
         #endregion
 
         public PortfolioService(ILogger<PortfolioService> logger, IEventsOutput eventsOutput, IMarketService marketSvc, IAPICommunication clientSvc)
@@ -74,7 +75,7 @@ namespace Trade02.Business.services
                 TransmitTradeEvent(TradeEventType.SELL, "", position);
 
                 ReportLog.WriteReport(logType.VENDA, position);
-                
+
                 AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
                 AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
 
@@ -93,7 +94,7 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            Console.WriteLine("Recommendation count: " + opp.Minutes.Count);
+            Console.WriteLine($"Recommendation count: M={opp.Minutes.Count}; H={opp.Hours.Count}; D={opp.Days.Count}");
 
             // File where the user can write which symbol to sell or to shut down the program
             List<string> toSellList = WalletManagement.GetSellPositionFromFile();
@@ -101,13 +102,14 @@ namespace Trade02.Business.services
             {
                 if (toSellList[0].ToLower() == "shut down")
                 {
-                    foreach(Position position in positions)
+                    foreach (Position position in positions)
                         await ExecuteForceSell(position);
-                    
+
                     Environment.Exit(0);
-                } else
+                }
+                else
                 {
-                    foreach(string toSell in toSellList)
+                    foreach (string toSell in toSellList)
                     {
                         var position = positions.Find(x => x.Symbol.ToLower().StartsWith(toSell.ToLower()));
                         bool res = await ExecuteForceSell(position);
@@ -121,8 +123,7 @@ namespace Trade02.Business.services
             alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
             UpdateOpenPositionsPerType(positions);
 
-            int stopCounter = 0;
-            var sold = new List<string>();
+            sold = new List<string>();
 
             // if surpass the maximum cap of profits, it decreases the sellPercentage so it can get out of open positions more quickly
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
@@ -136,83 +137,61 @@ namespace Trade02.Business.services
             try
             {
                 #region manage open positions
-                for (int i = 0; i < positions.Count; i++)
+
+                foreach (var position in positions.ToList())
                 {
-                    var market = await _clientSvc.GetTicker(positions[i].Symbol);
+                    var market = await _clientSvc.GetTicker(position.Symbol);
                     decimal currentPrice = market.AskPrice;
 
-                    decimal currentValorization = ValorizationCalc(positions[i].LastPrice, currentPrice);
+                    decimal currentValorization = ValorizationCalc(position.LastPrice, currentPrice);
 
-                    bool stop = false;
+                    Console.WriteLine($"\nMANAGE: ticker {position.Symbol}-{position.Type}; current val {currentValorization}; last val {position.Valorization}\n");
 
-                    positions[i].LastPrice = currentPrice;
-                    Console.WriteLine($"\nMANAGE: ticker {positions[i].Symbol}-{positions[i].Type}; current val {currentValorization}; last val {positions[i].Valorization}\n");
                     if (currentValorization <= 0)
                     {
-                        var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
+                        var responseSell = await ValidationSellOrder(position, currentValorization, market);
                         if (responseSell != null)
                         {
-                            TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-                            sold.Add(responseSell.Symbol);
-
-                            int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
-                            if (index > -1)
-                                toMonitor[index] = responseSell;
-                            else
-                                toMonitor.Add(responseSell);
-
-                            WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+                            toMonitor = ProcessSellResponse(responseSell, toMonitor);
                         }
                     }
                     else
                     {
-                        while (!stop)
+                        int stopCounter = 0;
+                        while (stopCounter < 4)
                         {
                             await Task.Delay(2000);
-                            market = await _clientSvc.GetTicker(positions[i].Symbol);
+                            market = await _clientSvc.GetTicker(position.Symbol);
                             currentPrice = market.AskPrice;
 
-                            currentValorization = ValorizationCalc(positions[i].LastPrice, currentPrice);
-                            positions[i].Valorization = ValorizationCalc(positions[i].InitialPrice, currentPrice);
-                            Console.WriteLine("valorizacao somada: " + positions[i].Valorization);
+                            currentValorization = ValorizationCalc(position.LastPrice, currentPrice);
+                            position.Valorization = ValorizationCalc(position.InitialPrice, currentPrice);
+                            Console.WriteLine("valorizacao somada: " + position.Valorization);
 
-                            if (positions[i].Valorization >= AppSettings.TradeConfiguration.SellPercentage)
+                            if (position.Valorization >= AppSettings.TradeConfiguration.SellPercentage)
                             {
                                 Console.WriteLine("Current valorization");
-                                stop = true;
-                                var responseSell = await ValidationSellOrder(positions[i], currentValorization, market);
-
+                                var responseSell = await ValidationSellOrder(position, currentValorization, market);
                                 if (responseSell != null)
                                 {
-                                    // mandar para uma lista de monitoramento dessa moeda e marcar o preço que saiu pois só compra se subir X acima dele
-                                    //positions[i] = responseSell;
-                                    TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-
-                                    sold.Add(responseSell.Symbol);
-                                    int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
-                                    if (index > -1)
-                                        toMonitor[index] = responseSell;
-                                    else
-                                        toMonitor.Add(responseSell);
-
-                                    WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+                                    toMonitor = ProcessSellResponse(responseSell, toMonitor);
+                                    break;
                                 }
                             }
                             else
                             {
-                                positions[i].LastPrice = currentPrice;
+                                position.LastPrice = currentPrice;
                                 stopCounter++;
-                                if (stopCounter >= 4)
-                                    stop = true;
                             }
                         }
                     }
 
-                    positions[i].Valorization = ValorizationCalc(positions[i].InitialPrice, currentPrice);
+                    position.Valorization = ValorizationCalc(position.InitialPrice, currentPrice);
                 }
 
                 foreach (var obj in sold)
                     positions.RemoveAll(x => x.Symbol == obj);
+
                 #endregion
 
                 #region enter new positions
@@ -223,6 +202,7 @@ namespace Trade02.Business.services
                     positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, -2, RecommendationTypeEnum.Hour);
                     positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day);
                 }
+
                 #endregion
 
                 return new ManagerResponse(opp, positions, toMonitor);
@@ -232,6 +212,22 @@ namespace Trade02.Business.services
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return new ManagerResponse(opp, positions, toMonitor);
             }
+        }
+
+        private List<Position> ProcessSellResponse(Position responseSell, List<Position> toMonitor)
+        {
+            TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+
+            sold.Add(responseSell.Symbol);
+            int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
+            if (index > -1)
+                toMonitor[index] = responseSell;
+            else
+                toMonitor.Add(responseSell);
+
+            WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+
+            return toMonitor;
         }
 
         private async Task<List<Position>> ExecuteOrder(List<Position> positions, List<IBinanceTick> symbols, int maxPositions, int maxOpenPositions, int openPositions, decimal riskLevel, RecommendationTypeEnum recommendationType)
