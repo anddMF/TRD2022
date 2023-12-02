@@ -28,7 +28,7 @@ namespace Trade02.Business.services.Interfaces
         /// <param name="interval"></param>
         /// <param name="period"></param>
         /// <returns></returns>
-        public Task<bool> IsAKlineOpportunitie(string symbol, KlineInterval interval, int period);
+        public Task<bool> IsAKlineOpportunity(string symbol, KlineInterval interval, int period);
 
         /// <summary>
         /// Responsible to verify on the list of recommendations if contains positions that were already sold before, if so, only maintains in the list the ones that have a price 1% higher compared to the sold price.

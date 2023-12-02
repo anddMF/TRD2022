@@ -30,6 +30,7 @@ namespace Trade02.Business.services
 
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
+        private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
         private readonly int minUSDT = 15;
 
         private int openDayPositions = 0;
@@ -90,6 +91,7 @@ namespace Trade02.Business.services
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
             List<string> toSellList = WalletManagement.GetSellPositionFromFile();
+            Console.WriteLine("Recommendation count: " + opp.Minutes.Count);
             if (toSellList.Count > 0)
             {
                 if (toSellList[0].ToLower() == "shut down")
@@ -123,7 +125,7 @@ namespace Trade02.Business.services
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.1;
             else
-                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.5;
+                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.4;
 
             //TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             Console.WriteLine($"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
@@ -225,7 +227,7 @@ namespace Trade02.Business.services
 
                                 alreadyUsed.Add(opp.Minutes[i].Symbol);
                                 openMinutePositions++;
-                                res.Risk = (decimal)-0.5;
+                                res.Risk = (decimal)-0.3;
                                 positions.Add(res);
 
                                 WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
@@ -581,7 +583,7 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        //_logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}, type: {type}");
+                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}, type: {type}");
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
@@ -655,6 +657,11 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<decimal> GetUSDTAmount()
         {
+            if (freeMode)
+            {
+                return maxBuyAmount;
+            }
+
             var balance = await GetBalance("USDT");
 
             if (balance == null)
