@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Trade02.Business.services.Interfaces;
 using Trade02.Infra.Cross;
@@ -36,6 +37,8 @@ namespace Trade02.Business.services
         private int openDayPositions = 0;
         private int openHourPositions = 0;
         private int openMinutePositions = 0;
+
+        private HashSet<string> alreadyUsed;
         #endregion
 
         public PortfolioService(ILogger<PortfolioService> logger, IEventsOutput eventsOutput, IMarketService marketSvc, IAPICommunication clientSvc)
@@ -115,7 +118,7 @@ namespace Trade02.Business.services
                 }
             }
 
-            HashSet<string> alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
+            alreadyUsed = new HashSet<string>(positions.ConvertAll(x => x.Symbol).ToList());
             UpdateOpenPositionsPerType(positions);
 
             int stopCounter = 0;
@@ -216,9 +219,9 @@ namespace Trade02.Business.services
 
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
-                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.3, RecommendationTypeEnum.Minute, alreadyUsed);
-                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, -2, RecommendationTypeEnum.Hour, alreadyUsed);
-                    positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day, alreadyUsed);
+                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.3, RecommendationTypeEnum.Minute);
+                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, -2, RecommendationTypeEnum.Hour);
+                    positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day);
                 }
                 #endregion
 
@@ -231,7 +234,7 @@ namespace Trade02.Business.services
             }
         }
 
-        private async Task<List<Position>> ExecuteOrder(List<Position> positions, List<IBinanceTick> symbols, int maxPositions, int maxOpenPositions, int openPositions, decimal riskLevel, RecommendationTypeEnum recommendationType, HashSet<string> alreadyUsed)
+        private async Task<List<Position>> ExecuteOrder(List<Position> positions, List<IBinanceTick> symbols, int maxPositions, int maxOpenPositions, int openPositions, decimal riskLevel, RecommendationTypeEnum recommendationType)
         {
             for (int i = 0; i < symbols.Count && openPositions < maxOpenPositions && positions.Count < maxPositions; i++)
             {
