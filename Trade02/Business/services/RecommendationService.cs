@@ -33,6 +33,58 @@ namespace Trade02.Business.services
             _clientSvc = clientSvc;
         }
 
+        // entre 40 e 70
+        public bool CalculateRSI(IEnumerable<IBinanceKline> klines, int period = 14)
+        {
+            var results = new List<RSIResult>();
+
+            var priceChanges = klines.Select(k => k.Close - k.Open).ToList();
+
+            decimal avgGain = 0;
+            decimal avgLoss = 0;
+
+            for (var i = 1; i <= period; i++)
+            {
+                var change = priceChanges[i];
+                if (change > 0)
+                    avgGain += change;
+                else
+                    avgLoss -= change; // Note que usamos um valor positivo
+
+                results.Add(new RSIResult { Timestamp = klines.ElementAt(i).CloseTime, RSI = 0 });
+            }
+
+            avgGain /= period;
+            avgLoss /= period;
+
+            for (var i = period + 1; i < klines.Count(); i++)
+            {
+                var change = priceChanges[i];
+                avgGain = (avgGain * (period - 1) + (change > 0 ? change : 0)) / period;
+                avgLoss = (avgLoss * (period - 1) + (change < 0 ? -change : 0)) / period;
+
+                var relativeStrength = avgGain / avgLoss;
+                var rsi = 100 - (100 / (1 + relativeStrength));
+
+                results.Add(new RSIResult { Timestamp = klines.ElementAt(i).CloseTime, RSI = (double)rsi });
+            }
+            
+            return CheckRSIWindow(results);
+        }
+
+        bool CheckRSIWindow(List<RSIResult> rsiResults, int numeroItensVerificar = 5, double limiteInferior = 40, double limiteSuperior = 70)
+        {
+            // Verificar se há pelo menos 'numeroItensVerificar' resultados
+            if (rsiResults.Count < numeroItensVerificar)
+                return false;
+
+            // Pegar os últimos 'numeroItensVerificar' resultados
+            var ultimosResultados = rsiResults.Take(numeroItensVerificar);
+
+            // Verificar se todos os RSI estão dentro da faixa especificada
+            return ultimosResultados.All(rsi => rsi.RSI >= limiteInferior && rsi.RSI <= limiteSuperior);
+        }
+
         /// <summary>
         /// Iterates on the list 'currentMarket' and try to identify opportunities using the timed klines from the asset
         /// </summary>
@@ -56,7 +108,7 @@ namespace Trade02.Business.services
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
                     var current = currentMarket[i];
-                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneDay, daysToAnalyze);
+                    bool opportunity = await IsAKlineOpportunity(current.Symbol, KlineInterval.OneDay, daysToAnalyze);
 
                     if (opportunity && !alreadyUsed.Contains(current.Symbol))
                     {
@@ -72,7 +124,7 @@ namespace Trade02.Business.services
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
                     var current = currentMarket[i];
-                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneHour, 3);
+                    bool opportunity = await IsAKlineOpportunity(current.Symbol, KlineInterval.OneHour, daysToAnalyze);
 
                     if (opportunity && !alreadyUsed.Contains(current.Symbol))
                     {
@@ -88,7 +140,7 @@ namespace Trade02.Business.services
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
                     var current = currentMarket[i];
-                    bool opportunity = await IsAKlineOpportunitie(current.Symbol, KlineInterval.OneMinute, 3);
+                    bool opportunity = await IsAKlineOpportunity(current.Symbol, KlineInterval.OneMinute, 3);
 
                     if (opportunity && !alreadyUsed.Contains(current.Symbol))
                     {
@@ -108,11 +160,12 @@ namespace Trade02.Business.services
         /// <param name="interval"></param>
         /// <param name="period"></param>
         /// <returns></returns>
-        public async Task<bool> IsAKlineOpportunitie(string symbol, KlineInterval interval, int period)
+        public async Task<bool> IsAKlineOpportunity(string symbol, KlineInterval interval, int period)
         {
             // separa os últimos X dias de klines
             var ogKlines = await _clientSvc.GetKlines(symbol, interval);
             var klines = ogKlines.TakeLast(period).ToList();
+            
 
             decimal max = decimal.MinValue;
 
@@ -245,5 +298,11 @@ namespace Trade02.Business.services
             return average;
         }
 
+    }
+
+    public class RSIResult
+    {
+        public DateTime Timestamp { get; set; }
+        public double RSI { get; set; }
     }
 }
