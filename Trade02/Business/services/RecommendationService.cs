@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Trade02.Business.services.Interfaces;
@@ -165,7 +166,8 @@ namespace Trade02.Business.services
             // separa os últimos X dias de klines
             var ogKlines = await _clientSvc.GetKlines(symbol, interval);
             var klines = ogKlines.TakeLast(period).ToList();
-            
+            //var rsi = CalculateRSI(klines);
+            //Console.WriteLine($"RSI: {symbol}; {rsi}");
 
             decimal max = decimal.MinValue;
 
@@ -208,6 +210,7 @@ namespace Trade02.Business.services
             if (maConfig)
             {
                 avg = SuperiorMovingAverage(ogKlines);
+                Console.WriteLine($"\tMA: {symbol}; {avg}");
                 return avg;
             }
 
