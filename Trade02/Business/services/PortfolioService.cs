@@ -74,7 +74,7 @@ namespace Trade02.Business.services
                 position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
                 TransmitTradeEvent(TradeEventType.SELL, "", position);
 
-                ReportLog.WriteReport(logType.VENDA, position);
+                ReportLog.WriteReport(logType.SELL, position);
 
                 AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
                 AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
@@ -421,7 +421,7 @@ namespace Trade02.Business.services
                     //_logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                     TransmitTradeEvent(TradeEventType.SELL, "", position);
 
-                    ReportLog.WriteReport(logType.VENDA, position);
+                    ReportLog.WriteReport(logType.SELL, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
                     AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
@@ -444,7 +444,7 @@ namespace Trade02.Business.services
                     // _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
                     TransmitTradeEvent(TradeEventType.SELL, "", position);
 
-                    ReportLog.WriteReport(logType.VENDA, position);
+                    ReportLog.WriteReport(logType.SELL, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
                     AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
@@ -498,7 +498,7 @@ namespace Trade02.Business.services
                             openPositions.Add(position);
 
                             TransmitTradeEvent(TradeEventType.BUY, "", position);
-                            ReportLog.WriteReport(logType.COMPRA, position);
+                            ReportLog.WriteReport(logType.BUY, position);
                             j = 10;
                         }
                     }
@@ -558,7 +558,7 @@ namespace Trade02.Business.services
                         position.Type = type;
 
                         TransmitTradeEvent(TradeEventType.BUY, "", position);
-                        ReportLog.WriteReport(logType.COMPRA, position);
+                        ReportLog.WriteReport(logType.BUY, position);
                         j = 10;
                     }
                 }
@@ -610,7 +610,7 @@ namespace Trade02.Business.services
                         position.Type = type;
 
                         TransmitTradeEvent(TradeEventType.BUY, "", position);
-                        ReportLog.WriteReport(logType.COMPRA, position);
+                        ReportLog.WriteReport(logType.BUY, position);
                         j = 10;
                     }
                 }

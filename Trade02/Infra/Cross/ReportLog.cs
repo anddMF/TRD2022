@@ -9,7 +9,7 @@ namespace Trade02.Infra.Cross
 {
     public class ReportLog
     {
-        public enum logType { COMPRA, VENDA, POSICAO }
+        public enum logType { BUY, SELL, POSITION }
 
         public static void WriteReport(logType typeLog, Position position)
         {
