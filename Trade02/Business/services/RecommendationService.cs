@@ -73,17 +73,15 @@ namespace Trade02.Business.services
             return CheckRSIWindow(results);
         }
 
-        bool CheckRSIWindow(List<RSIResult> rsiResults, int numeroItensVerificar = 5, double limiteInferior = 40, double limiteSuperior = 70)
+        bool CheckRSIWindow(List<RSIResult> rsiResults, int itemsToVerify = 5, double inferiorLimit = 40, double superiorLimit = 70)
         {
-            // Verificar se há pelo menos 'numeroItensVerificar' resultados
-            if (rsiResults.Count < numeroItensVerificar)
+            if (rsiResults.Count < itemsToVerify)
                 return false;
 
-            // Pegar os últimos 'numeroItensVerificar' resultados
-            var ultimosResultados = rsiResults.Take(numeroItensVerificar);
+            var lastResults = rsiResults.Take(itemsToVerify);
 
-            // Verificar se todos os RSI estão dentro da faixa especificada
-            return ultimosResultados.All(rsi => rsi.RSI >= limiteInferior && rsi.RSI <= limiteSuperior);
+            // verifies if the results are inside the range window
+            return lastResults.All(rsi => rsi.RSI >= inferiorLimit && rsi.RSI <= superiorLimit);
         }
 
         /// <summary>
@@ -166,8 +164,6 @@ namespace Trade02.Business.services
             // separa os últimos X dias de klines
             var ogKlines = await _clientSvc.GetKlines(symbol, interval);
             var klines = ogKlines.TakeLast(period).ToList();
-            //var rsi = CalculateRSI(klines);
-            //Console.WriteLine($"RSI: {symbol}; {rsi}");
 
             decimal max = decimal.MinValue;
 
@@ -213,6 +209,9 @@ namespace Trade02.Business.services
                 Console.WriteLine($"\tMA: {symbol}; {avg}");
                 return avg;
             }
+
+            //var rsi = CalculateRSI(ogKlines);
+            //Console.WriteLine($"RSI: {symbol}; {rsi}");
 
             return true;
         }
