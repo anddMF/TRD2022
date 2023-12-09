@@ -76,7 +76,7 @@ namespace Trade02.Business.services
             return CheckRSIWindow(results);
         }
 
-        bool CheckRSIWindow(List<RSIResult> rsiResults, int itemsToVerify = 5, double inferiorLimit = 40, double superiorLimit = 70)
+        bool CheckRSIWindow(List<RSIResult> rsiResults, int itemsToVerify = 3, double inferiorLimit = 40, double superiorLimit = 70)
         {
             if (rsiResults.Count < itemsToVerify)
                 return false;
@@ -214,7 +214,7 @@ namespace Trade02.Business.services
             var rsi = CalculateRSI(ogKlines);
             Console.WriteLine($"RSI: {symbol}; {rsi}");
 
-            return true;
+            return rsi;
         }
 
         /// <summary>
