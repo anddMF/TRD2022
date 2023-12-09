@@ -43,6 +43,7 @@ namespace Trade02.Business.services
 
             decimal avgGain = 0;
             decimal avgLoss = 0;
+            decimal relativeStrength = 1;
 
             for (var i = 1; i <= period; i++)
             {
@@ -50,7 +51,7 @@ namespace Trade02.Business.services
                 if (change > 0)
                     avgGain += change;
                 else
-                    avgLoss -= change; // Note que usamos um valor positivo
+                    avgLoss -= change; 
 
                 results.Add(new RSIResult { Timestamp = klines.ElementAt(i).CloseTime, RSI = 0 });
             }
@@ -64,7 +65,9 @@ namespace Trade02.Business.services
                 avgGain = (avgGain * (period - 1) + (change > 0 ? change : 0)) / period;
                 avgLoss = (avgLoss * (period - 1) + (change < 0 ? -change : 0)) / period;
 
-                var relativeStrength = avgGain / avgLoss;
+                if (avgLoss > 0)
+                    relativeStrength = avgGain / avgLoss;
+
                 var rsi = 100 - (100 / (1 + relativeStrength));
 
                 results.Add(new RSIResult { Timestamp = klines.ElementAt(i).CloseTime, RSI = (double)rsi });
@@ -78,7 +81,7 @@ namespace Trade02.Business.services
             if (rsiResults.Count < itemsToVerify)
                 return false;
 
-            var lastResults = rsiResults.Take(itemsToVerify);
+            var lastResults = rsiResults.TakeLast(itemsToVerify);
 
             // verifies if the results are inside the range window
             return lastResults.All(rsi => rsi.RSI >= inferiorLimit && rsi.RSI <= superiorLimit);
@@ -117,7 +120,6 @@ namespace Trade02.Business.services
                 }
             }
 
-
             if (hourConfig)
             {
                 for (int i = 0; i < currentMarket.Count; i++)
@@ -132,7 +134,6 @@ namespace Trade02.Business.services
                     }
                 }
             }
-
 
             if (minuteConfig)
             {
@@ -210,8 +211,8 @@ namespace Trade02.Business.services
                 return avg;
             }
 
-            //var rsi = CalculateRSI(ogKlines);
-            //Console.WriteLine($"RSI: {symbol}; {rsi}");
+            var rsi = CalculateRSI(ogKlines);
+            Console.WriteLine($"RSI: {symbol}; {rsi}");
 
             return true;
         }
