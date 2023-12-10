@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Trade02.Models.Trade;
 
 namespace Trade02.Infra.Cross
@@ -48,7 +49,7 @@ namespace Trade02.Infra.Cross
 
             if (filePositions.Count > 0)
             {
-                for(int i = 0; i < filePositions.Count; i++)
+                for (int i = 0; i < filePositions.Count; i++)
                 {
                     Position pos = filePositions[i];
                     AddPositionToFile(pos, currentProfit, currentUSDTProfit);
@@ -98,11 +99,52 @@ namespace Trade02.Infra.Cross
             if (!File.Exists(sellFilePath))
                 return null;
 
-            var toSellList = File.ReadAllLines(sellFilePath).ToList();
-            toSellList = toSellList.Count > 0 ? toSellList[0].Split(';').ToList() : toSellList;
-            File.WriteAllText(sellFilePath, string.Empty);
+            const int maxTries = 3;
+            const int delay = 1000;
+            List<string> toSellList = new List<string>();
+
+            for (int i = 0; i < maxTries; i++)
+            {
+                try
+                {
+                    toSellList = TryReadFile(sellFilePath);
+                    toSellList = toSellList.Count > 0 ? toSellList[0].Split(';').ToList() : toSellList;
+
+                    TryEmptyFile(sellFilePath);
+                    break;
+                }
+                catch (Exception ex)
+                { 
+                    Console.WriteLine($"Error: file positionsToSell.csv might be open, please save it and close it");
+                    Thread.Sleep(delay);
+                }
+            }
 
             return toSellList;
+        }
+
+        private static List<string> TryReadFile(string filePath)
+        {
+            try
+            {
+                return File.ReadAllLines(filePath).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        private static void TryEmptyFile(string filePath)
+        {
+            try
+            {
+                File.WriteAllText(filePath, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         private static Position TransformLineIntoPosition(string line)
@@ -121,10 +163,10 @@ namespace Trade02.Infra.Cross
             {
                 case "day":
                     return RecommendationTypeEnum.Day;
-                    
+
                 case "hour":
                     return RecommendationTypeEnum.Hour;
-                    
+
                 case "minute":
                     return RecommendationTypeEnum.Minute;
 
