@@ -32,6 +32,7 @@ namespace Trade02.Business.services
         private readonly int maxOpenPositions = AppSettings.TradeConfiguration.MaxOpenPositions;
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
         private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
+        private readonly decimal originalSellPercentage = AppSettings.TradeConfiguration.SellPercentage;
         private readonly int minUSDT = 15;
 
         private int openDayPositions = 0;
@@ -129,7 +130,7 @@ namespace Trade02.Business.services
             if (AppSettings.TradeConfiguration.CurrentProfit >= AppSettings.TradeConfiguration.MaxProfit)
                 AppSettings.TradeConfiguration.SellPercentage = (decimal)0.1;
             else
-                AppSettings.TradeConfiguration.SellPercentage = (decimal)0.2;
+                AppSettings.TradeConfiguration.SellPercentage = originalSellPercentage;
 
             //TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
             Console.WriteLine($"SELL: {FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
@@ -198,7 +199,7 @@ namespace Trade02.Business.services
 
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
-                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.4, RecommendationTypeEnum.Minute);
+                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.2, RecommendationTypeEnum.Minute);
                     positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, -2, RecommendationTypeEnum.Hour);
                     positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day);
                 }
