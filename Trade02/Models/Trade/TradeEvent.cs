@@ -2,13 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Trade02.Infra.Cross;
 using Trade02.Infra.DAO;
 
 namespace Trade02.Models.Trade
 {
     public enum TradeEventType
     {
-        BUY = 1, SELL, FORCESELL, INFO, ERROR, START, FINISH
+        BUY = 1, SELL, INFO, ERROR, START, FINISH, FORCESELL
     }
 
     public class TradeEvent
@@ -38,12 +39,12 @@ namespace Trade02.Models.Trade
         
         private string PayloadFromBuy()
         {
-            return $"COMPRA: {DateTime.Now}, moeda: {PositionData.Symbol}, price: {PositionData.InitialPrice}, type: {PositionData.Type}";
+            return $"BUY: {DateTime.Now}, symbol: {PositionData.Symbol}, price: {Utils.FormatDecimal(PositionData.InitialPrice)}, type: {PositionData.Type}";
             //return $"COMPRA: {DateTime.Now}, moeda: {PositionData.Symbol}, current percentage: {market.PriceChangePercent}, price: {PositionData.InitialPrice}, type: {PositionData.Type}";
         }
         private string PayloadFromSell()
         {
-            return $"VENDA: {DateTime.Now}, moeda: {PositionData.Symbol}, total valorization: {PositionData.Valorization}, final price: {PositionData.LastPrice}, initial price: {PositionData.InitialPrice}, type: {PositionData.Type}";
+            return $"SELL: {DateTime.Now}, symbol: {PositionData.Symbol}, total valorization: {Utils.FormatDecimal(PositionData.Valorization)}, final price: {Utils.FormatDecimal(PositionData.LastPrice)}, initial price: {Utils.FormatDecimal(PositionData.InitialPrice)}, type: {PositionData.Type}";
         }
 
         public TradeEventDAO GenerateRecordDAO()

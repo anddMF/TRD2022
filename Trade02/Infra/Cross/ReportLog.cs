@@ -37,7 +37,7 @@ namespace Trade02.Infra.Cross
                     #region Append
                     using (StreamWriter sw = File.AppendText(filepath))
                     {
-                        string message = $"{DateTime.Now};[{typeLog}]; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Type};";
+                        string message = $"{DateTime.Now};[{typeLog}]; {position.Symbol}; {Utils.FormatDecimal(position.InitialPrice)}; {Utils.FormatDecimal(position.LastPrice)}; {Utils.FormatDecimal(position.InitialValue)}; {Utils.FormatDecimal(position.LastValue)}; {Utils.FormatDecimal(position.Valorization)}; {position.Type};";
                         sw.WriteLine(message);
                         Console.WriteLine("\n"+message+"\n");
                     }
@@ -57,7 +57,7 @@ namespace Trade02.Infra.Cross
             using (StreamWriter sw = File.CreateText(filepath))
             {
                 sw.WriteLine($"DATE;TYPE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;REC TYPE;");
-                string message = $"{DateTime.Now};[{typeLog}]; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Type};";
+                string message = $"{DateTime.Now};[{typeLog}]; {position.Symbol}; {Utils.FormatDecimal(position.InitialPrice)}; {Utils.FormatDecimal(position.LastPrice)}; {Utils.FormatDecimal(position.InitialValue)}; {Utils.FormatDecimal(position.LastValue)}; {Utils.FormatDecimal(position.Valorization)}; {position.Type};";
                 sw.WriteLine(message);
                 Console.WriteLine("\n" + message + "\n");
             }

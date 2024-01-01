@@ -106,6 +106,7 @@ namespace Trade02.Business.services
                     foreach (Position position in positions)
                         await ExecuteForceSell(position);
 
+                    await Task.Delay(15000);
                     Environment.Exit(0);
                 }
                 else
@@ -133,7 +134,7 @@ namespace Trade02.Business.services
                 AppSettings.TradeConfiguration.SellPercentage = originalSellPercentage;
 
             //TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-            Console.WriteLine($"SELL: {FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
+            Console.WriteLine($"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
 
             try
             {
@@ -146,7 +147,7 @@ namespace Trade02.Business.services
 
                     decimal currentValorization = ValorizationCalc(position.LastPrice, currentPrice);
 
-                    Console.WriteLine($"\nMANAGE: ticker {position.Symbol}-{position.Type}; current val {FormatDecimal(currentValorization)}; last val {FormatDecimal(position.Valorization)}");
+                    Console.WriteLine($"\nMANAGE: ticker {position.Symbol}-{position.Type}; current val {Utils.FormatDecimal(currentValorization)}; last val {Utils.FormatDecimal(position.Valorization)}");
 
                     if (currentValorization <= 0)
                     {
@@ -167,7 +168,7 @@ namespace Trade02.Business.services
 
                             currentValorization = ValorizationCalc(position.LastPrice, currentPrice);
                             position.Valorization = ValorizationCalc(position.InitialPrice, currentPrice);
-                            Console.WriteLine("valorizacao somada: " + FormatDecimal(position.Valorization));
+                            Console.WriteLine("valorizacao somada: " + Utils.FormatDecimal(position.Valorization));
 
                             if (position.Valorization >= AppSettings.TradeConfiguration.SellPercentage)
                             {
@@ -217,7 +218,7 @@ namespace Trade02.Business.services
 
         private List<Position> ProcessSellResponse(Position responseSell, List<Position> toMonitor)
         {
-            TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+            TransmitTradeEvent(TradeEventType.INFO, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
 
             sold.Add(responseSell.Symbol);
             int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
@@ -240,7 +241,7 @@ namespace Trade02.Business.services
                     var res = await ExecuteSimpleOrder(symbols[i].Symbol, recommendationType);
                     if (res != null)
                     {
-                        TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+                        TransmitTradeEvent(TradeEventType.INFO, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
 
                         alreadyUsed.Add(symbols[i].Symbol);
                         openPositions++;
@@ -328,7 +329,7 @@ namespace Trade02.Business.services
                 await Task.Delay(2000);
                 var market = await _clientSvc.GetTicker(symbol);
                 decimal price = market.AskPrice;
-                Console.WriteLine($"Price {symbol}: {FormatDecimal(price)}");
+                Console.WriteLine($"Price {symbol}: {Utils.FormatDecimal(price)}");
 
                 if (j > 0 && price > prevPrice)
                 {
@@ -554,7 +555,7 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}, type: {type}");
+                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {Utils.FormatDecimal(market.PriceChangePercent)}, price: {Utils.FormatDecimal(order.Price)}, type: {type}");
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
@@ -715,11 +716,6 @@ namespace Trade02.Business.services
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManageOpenPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return null;
             }
-        }
-
-        private string FormatDecimal(decimal toTransform)
-        {
-            return String.Format("{0:0.00}", toTransform);
         }
 
         /// <summary>
