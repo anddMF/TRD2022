@@ -1,1 +1,6 @@
+// create topic
+docker-compose up
 docker-compose exec kafka kafka-topics --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic topic-teste --create
+
+// check if the topic is up
+docker-compose exec kafka kafka-topics --describe --topic topic-teste --bootstrap-server localhost:9092
