@@ -4,3 +4,6 @@ docker-compose exec kafka kafka-topics --bootstrap-server localhost:9092 --repli
 
 // check if the topic is up
 docker-compose exec kafka kafka-topics --describe --topic topic-teste --bootstrap-server localhost:9092
+
+// consuming messages
+docker-compose exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic topic-teste --from-beginning --max-messages 100
