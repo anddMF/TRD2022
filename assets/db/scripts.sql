@@ -73,10 +73,17 @@ CREATE TABLE trd2022_execution(
 );
 
 -- STP GET EVENTS
-DELIMITER //
-use develop2020;
-CREATE PROCEDURE STP_TRD2022_GET_EVENTS ()
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `STP_TRD2022_GET_EVENTS`()
 BEGIN
-	SELECT eve.ID, typ.NAME, eve.INFO, eve.MOMENT FROM develop2020.trd2022_event eve INNER JOIN develop2020.trd2022_event_type typ on eve.ID_EVENT_TYPE = typ.ID ;
-END //
+	SELECT eve.ID, typ.NAME, eve.INFO, eve.MOMENT FROM develop2020.trd2022_event eve INNER JOIN develop2020.trd2022_event_type typ on eve.ID_EVENT_TYPE = typ.ID 
+    WHERE eve.ID >=  
+    (
+		select ID from develop2020.trd2022_event 
+		where ID_EVENT_TYPE = 5
+		ORDER BY MOMENT DESC
+		LIMIT 1
+	)
+    ORDER BY MOMENT;
+END$$
 DELIMITER ;

@@ -101,7 +101,7 @@ namespace Trade02.Business.services
             List<string> toSellList = WalletManagement.GetSellPositionFromFile();
             if (toSellList.Count > 0)
             {
-                if (toSellList[0].ToLower() == "shut down")
+                if (toSellList[0].ToLower() == "shut")
                 {
                     foreach (Position position in positions)
                         await ExecuteForceSell(position);
