@@ -78,7 +78,7 @@ namespace Trade02.Business.services
                 ReportLog.WriteReport(logType.SELL, position);
 
                 AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
+                AppSettings.TradeConfiguration.CurrentUSDTProfit += position.LastValue - position.InitialValue;
 
                 WalletManagement.RemovePositionFromFile(position.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
                 return true;
@@ -426,7 +426,7 @@ namespace Trade02.Business.services
                     ReportLog.WriteReport(logType.SELL, position);
                     //position = new Position(market, order.Price, order.Quantity);
                     AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
+                    AppSettings.TradeConfiguration.CurrentUSDTProfit += position.LastValue - position.InitialValue;
 
                     return position;
                 }

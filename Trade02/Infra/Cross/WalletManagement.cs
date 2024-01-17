@@ -28,7 +28,7 @@ namespace Trade02.Infra.Cross
                 {
                     using (StreamWriter sw = File.AppendText(positionsFilePath))
                     {
-                        sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit}; {currentUSDTProfit}");
+                        sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {Utils.FormatDecimal(position.InitialPrice)}; {Utils.FormatDecimal(position.LastPrice)}; {Utils.FormatDecimal(position.InitialValue)}; {Utils.FormatDecimal(position.LastValue)}; {Utils.FormatDecimal(position.Valorization)}; {position.Quantity}; {position.Type}; {Utils.FormatDecimal(currentProfit)}; {Utils.FormatDecimal(currentUSDTProfit)}");
                     }
                 }
                 return true;
@@ -64,7 +64,7 @@ namespace Trade02.Infra.Cross
             using (StreamWriter sw = File.CreateText(filepath))
             {
                 sw.WriteLine($"DATE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;QUANTITY;REC TYPE;CURRENT VAL; CURRENT USDT VAL");
-                sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {position.InitialPrice}; {position.LastPrice}; {position.InitialValue}; {position.LastValue}; {position.Valorization}; {position.Quantity}; {position.Type}; {currentProfit}; {currentUSDTProfit}");
+                sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {Utils.FormatDecimal(position.InitialPrice)}; {Utils.FormatDecimal(position.LastPrice)}; {Utils.FormatDecimal(position.InitialValue)}; {Utils.FormatDecimal(position.LastValue)}; {Utils.FormatDecimal(position.Valorization)}; {Utils.FormatDecimal(position.Quantity)}; {position.Type}; {Utils.FormatDecimal(currentProfit)}; {Utils.FormatDecimal(currentUSDTProfit)}");
             }
         }
 
