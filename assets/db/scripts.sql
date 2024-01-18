@@ -76,7 +76,7 @@ CREATE TABLE trd2022_execution(
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `STP_TRD2022_GET_EVENTS`()
 BEGIN
-	SELECT eve.ID as 'id', typ.NAME as 'name', eve.INFO as 'info', eve.ASSET as 'asset', eve.INITIAL_PRICE as 'initialPrice', eve.FINAL_PRICE as 'finalPrice', eve.QUANTITY as 'quantity', eve.MOMENT as 'moment' FROM develop2020.trd2022_event eve INNER JOIN develop2020.trd2022_event_type typ on eve.ID_EVENT_TYPE = typ.ID 
+	SELECT eve.ID as 'id', typ.NAME as 'name', eve.INFO as 'info', eve.ASSET as 'asset', eve.INITIAL_PRICE as 'initialPrice', eve.FINAL_PRICE as 'finalPrice', eve.QUANTITY as 'quantity', eve.VALORIZATION as 'valorization', eve.MOMENT as 'moment' FROM develop2020.trd2022_event eve INNER JOIN develop2020.trd2022_event_type typ on eve.ID_EVENT_TYPE = typ.ID 
     WHERE eve.ID >=  
     (
 		select ID from develop2020.trd2022_event 
