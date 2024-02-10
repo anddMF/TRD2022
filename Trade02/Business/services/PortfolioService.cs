@@ -82,7 +82,7 @@ namespace Trade02.Business.services
             {
                 if (toSellList[0].ToLower() == "shut")
                 {
-                    _logger.LogInformation("###### STARTING FORCED SHUTDOWM #####")
+                    _logger.LogInformation("###### STARTING FORCED SHUTDOWM #####");
                     foreach (Position position in positions)
                         await ExecuteForceSell(position);
 
