@@ -65,27 +65,6 @@ namespace Trade02.Business.services
             // TODO: treatment for an event not sent
         }
 
-        private async Task<bool> ExecuteForceSell(Position position)
-        {
-            var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
-            if (order != null)
-            {
-                position.LastPrice = order.Price;
-                position.LastValue = position.Quantity * order.Price;
-                position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
-                TransmitTradeEvent(TradeEventType.SELL, "", position);
-
-                ReportLog.WriteReport(logType.SELL, position);
-
-                AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                AppSettings.TradeConfiguration.CurrentUSDTProfit += position.LastValue - position.InitialValue;
-
-                WalletManagement.RemovePositionFromFile(position.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
-                return true;
-            }
-            return false;
-        }
-
         /// <summary>
         /// Engine for the managing of open positions and recommended ones. Based on certain conditions, it makes the decision for a sell or hold call, also, initiates the process 
         /// for a buy call on another engine.
@@ -103,6 +82,7 @@ namespace Trade02.Business.services
             {
                 if (toSellList[0].ToLower() == "shut")
                 {
+                    _logger.LogInformation("###### STARTING FORCED SHUTDOWM #####")
                     foreach (Position position in positions)
                         await ExecuteForceSell(position);
 
@@ -154,7 +134,7 @@ namespace Trade02.Business.services
                         var responseSell = await ValidationSellOrder(position, currentValorization, market);
                         if (responseSell != null)
                         {
-                            toMonitor = ProcessSellResponse(responseSell, toMonitor);
+                            toMonitor = UpdateToMonitorList(responseSell, toMonitor);
                         }
                     }
                     else
@@ -176,7 +156,7 @@ namespace Trade02.Business.services
                                 var responseSell = await ValidationSellOrder(position, currentValorization, market);
                                 if (responseSell != null)
                                 {
-                                    toMonitor = ProcessSellResponse(responseSell, toMonitor);
+                                    toMonitor = UpdateToMonitorList(responseSell, toMonitor);
                                     break;
                                 }
                             }
@@ -214,46 +194,6 @@ namespace Trade02.Business.services
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: PortfolioService.ManagePosition(), message: {ex.Message}, \n stack: {ex.StackTrace}");
                 return new ManagerResponse(opp, positions, toMonitor);
             }
-        }
-
-        private List<Position> ProcessSellResponse(Position responseSell, List<Position> toMonitor)
-        {
-            TransmitTradeEvent(TradeEventType.INFO, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
-
-            sold.Add(responseSell.Symbol);
-            int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
-            if (index > -1)
-                toMonitor[index] = responseSell;
-            else
-                toMonitor.Add(responseSell);
-
-            WalletManagement.RemovePositionFromFile(responseSell.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
-
-            return toMonitor;
-        }
-
-        private async Task<List<Position>> ExecuteOrder(List<Position> positions, List<IBinanceTick> symbols, int maxPositions, int maxOpenPositions, int openPositions, decimal riskLevel, RecommendationTypeEnum recommendationType)
-        {
-            for (int i = 0; i < symbols.Count && openPositions < maxOpenPositions && positions.Count < maxPositions; i++)
-            {
-                if (!alreadyUsed.Contains(symbols[i].Symbol))
-                {
-                    var res = await ExecuteSimpleOrder(symbols[i].Symbol, recommendationType);
-                    if (res != null)
-                    {
-                        TransmitTradeEvent(TradeEventType.INFO, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
-
-                        alreadyUsed.Add(symbols[i].Symbol);
-                        openPositions++;
-                        res.Risk = riskLevel;
-                        positions.Add(res);
-
-                        WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
-                    }
-                }
-            }
-
-            return positions;
         }
 
         /// <summary>
@@ -312,6 +252,55 @@ namespace Trade02.Business.services
             }
         }
 
+        private List<Position> UpdateToMonitorList(Position responseSell, List<Position> toMonitor)
+        {
+            sold.Add(responseSell.Symbol);
+            int index = toMonitor.FindIndex(x => x.Symbol == responseSell.Symbol);
+            if (index > -1)
+                toMonitor[index] = responseSell;
+            else
+                toMonitor.Add(responseSell);
+
+            return toMonitor;
+        }
+
+        #region methods that handle orders
+
+        /// <summary>
+        /// Execute an order only if the conditions are met: space available on open positions and the symbol isn`t already an open position
+        /// </summary>
+        /// <param name="positions"></param>
+        /// <param name="symbols"></param>
+        /// <param name="maxPositions"></param>
+        /// <param name="maxOpenPositions"></param>
+        /// <param name="openPositions"></param>
+        /// <param name="riskLevel"></param>
+        /// <param name="recommendationType"></param>
+        /// <returns></returns>
+        private async Task<List<Position>> ExecuteOrder(List<Position> positions, List<IBinanceTick> symbols, int maxPositions, int maxOpenPositions, int openPositions, decimal riskLevel, RecommendationTypeEnum recommendationType)
+        {
+            for (int i = 0; i < symbols.Count && openPositions < maxOpenPositions && positions.Count < maxPositions; i++)
+            {
+                if (!alreadyUsed.Contains(symbols[i].Symbol))
+                {
+                    var res = await ExecuteBuyOrder(symbols[i].Symbol, recommendationType);
+                    if (res != null)
+                    {
+                        TransmitTradeEvent(TradeEventType.INFO, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
+
+                        alreadyUsed.Add(symbols[i].Symbol);
+                        openPositions++;
+                        res.Risk = riskLevel;
+                        positions.Add(res);
+
+                        WalletManagement.AddPositionToFile(res, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+                    }
+                }
+            }
+
+            return positions;
+        }
+
         /// <summary>
         /// Executes a sell call based on certain validations and attempts.
         /// </summary>
@@ -360,24 +349,37 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Returns the positions that remained open from the last execution of the TRD2022.
+        /// Executes a force sell without attempting to get a better value
         /// </summary>
+        /// <param name="position"></param>
         /// <returns></returns>
-        public List<Position> GetLastPositions()
+        private async Task<bool> ExecuteForceSell(Position position)
         {
-            try
+            var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
+            if (order != null)
             {
-                List<Position> positions = WalletManagement.GetPositionFromFile();
-
-                return positions;
+                HandlePositionSold(position, order);
+                return true;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"ERROR: {DateTime.Now}, method: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
-                return null;
-            }
+            return false;
         }
 
+        private Position HandlePositionSold(Position position, BinancePlacedOrder order)
+        {
+            position.LastPrice = order.Price;
+            position.LastValue = position.Quantity * order.Price;
+            position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
+            TransmitTradeEvent(TradeEventType.SELL, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}", position);
+
+            ReportLog.WriteReport(logType.SELL, position);
+
+            AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
+            AppSettings.TradeConfiguration.CurrentUSDTProfit += position.LastValue - position.InitialValue;
+
+            WalletManagement.RemovePositionFromFile(position.Symbol, AppSettings.TradeConfiguration.CurrentProfit, AppSettings.TradeConfiguration.CurrentUSDTProfit);
+
+            return position;
+        }
 
         /// <summary>
         /// Balances if it is a good moment to sell an asset, if yes, determines a moment to sell it based on certain validations and make the call.
@@ -417,17 +419,7 @@ namespace Trade02.Business.services
                 var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 if (order != null)
                 {
-                    position.LastPrice = order.Price;
-                    position.LastValue = position.Quantity * order.Price;
-                    position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
-                    //_logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
-                    TransmitTradeEvent(TradeEventType.SELL, "", position);
-
-                    ReportLog.WriteReport(logType.SELL, position);
-                    //position = new Position(market, order.Price, order.Quantity);
-                    AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += position.LastValue - position.InitialValue;
-
+                    position = HandlePositionSold(position, order);
                     return position;
                 }
                 return null;
@@ -439,17 +431,7 @@ namespace Trade02.Business.services
                 var order = await ExecuteSellOrder(position.Symbol, position.Quantity);
                 if (order != null)
                 {
-                    // jogar para um  novo objeto que sera usado para monitorar essa posicao caso volte a subir
-                    position.LastPrice = order.Price;
-                    position.LastValue = position.Quantity * order.Price;
-                    position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
-                    // _logger.LogWarning($"VENDA: {DateTime.Now}, moeda: {position.Symbol}, total valorization: {position.Valorization}, current price: {order.Price}, initial: {position.InitialPrice}");
-                    TransmitTradeEvent(TradeEventType.SELL, "", position);
-
-                    ReportLog.WriteReport(logType.SELL, position);
-                    //position = new Position(market, order.Price, order.Quantity);
-                    AppSettings.TradeConfiguration.CurrentProfit += position.Valorization;
-                    AppSettings.TradeConfiguration.CurrentUSDTProfit += (position.LastValue - position.InitialValue);
+                    position = HandlePositionSold(position, order);
                     return position;
                 }
                 return null;
@@ -459,76 +441,12 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Executes multiple orders based on certain condidtions.
-        /// </summary>
-        /// <returns></returns>
-        public async Task<OrderResponse> ExecuteMulitpleOrder(List<string> symbols)
-        {
-            // falta um controle para recomendações repetidas
-            decimal quantity = await GetUSDTAmount();
-            List<Position> openPositions = new List<Position>();
-            List<string> notBought = new List<string>();
-            List<string> bought = new List<string>();
-            if (quantity == 0)
-                return null;
-
-            // rodar X vezes no loop e ver se o preço está só baixando, se ele somente cair não é um bom sinal. Se não conseguir fazer a compra por estar somente caindo, cancela essa recomendação.
-            decimal prevPrice = 0;
-            for (int i = 0; i < symbols.Count; i++)
-            {
-                string symbol = symbols[i];
-                prevPrice = 0;
-                int j = 0;
-                while (j < 5)
-                {
-                    var market = await _clientSvc.GetTicker(symbol);
-                    decimal price = market.AskPrice;
-
-                    if (j > 0 && price > prevPrice)
-                    {
-                        var order = await _marketSvc.PlaceBuyOrder(symbol, quantity);
-                        if (order == null)
-                        {
-                            TransmitTradeEvent(TradeEventType.ERROR, $"PURCHASE OF {symbol} NOT EXECUTED");
-                        }
-                        else
-                        {
-                            //_logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {market.PriceChangePercent}, price: {order.Price}");
-                            bought.Add(symbols[i]);
-
-                            Position position = new Position(market, order.Price, order.Quantity);
-                            openPositions.Add(position);
-
-                            TransmitTradeEvent(TradeEventType.BUY, "", position);
-                            ReportLog.WriteReport(logType.BUY, position);
-                            j = 10;
-                        }
-                    }
-
-                    prevPrice = price;
-                    j++;
-                }
-            }
-
-            if (bought.Count != symbols.Count)
-            {
-                var left = from sym in symbols
-                           where !bought.Any(x => x == sym)
-                           select sym;
-
-                notBought = left.ToList();
-            }
-
-            return new OrderResponse(openPositions, bought, notBought);
-        }
-
-        /// <summary>
         /// Executes a single buy order that meets the constraints for it.
         /// </summary>
         /// <param name="symbol">symbol for the order</param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationTypeEnum type)
+        public async Task<Position> ExecuteBuyOrder(string symbol, RecommendationTypeEnum type)
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)
@@ -579,7 +497,7 @@ namespace Trade02.Business.services
         /// <param name="type"></param>
         /// <param name="minPrice"></param>
         /// <returns></returns>
-        public async Task<Position> ExecuteSimpleOrder(string symbol, RecommendationTypeEnum type, decimal minPrice)
+        public async Task<Position> ExecuteBuyOrder(string symbol, RecommendationTypeEnum type, decimal minPrice)
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)
@@ -623,6 +541,28 @@ namespace Trade02.Business.services
 
             return position.Data != null ? position : null;
         }
+
+        #endregion
+
+        /// <summary>
+        /// Returns the positions that remained open from the last execution of the TRD2022.
+        /// </summary>
+        /// <returns></returns>
+        public List<Position> GetLastPositions()
+        {
+            try
+            {
+                List<Position> positions = WalletManagement.GetPositionFromFile();
+
+                return positions;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ERROR: {DateTime.Now}, method: PortfolioService.GetLastPositions(), message: {ex.Message}, \n stack: {ex.StackTrace}");
+                return null;
+            }
+        }
+
         /// <summary>
         /// Get the amount of USDT that can be spent on an order.
         /// </summary>

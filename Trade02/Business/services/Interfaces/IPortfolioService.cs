@@ -46,12 +46,6 @@ namespace Trade02.Business.services
         /// <param name="market">current market data from the position</param>
         /// <returns></returns>
         public Task<Position> ValidationSellOrder(Position position, decimal currentValorization, IBinanceTick market);
-        
-        /// <summary>
-        /// Executes multiple orders based on certain condidtions.
-        /// </summary>
-        /// <returns></returns>
-        public Task<OrderResponse> ExecuteMulitpleOrder(List<string> symbols);
 
         /// <summary>
         /// Executes a single buy order that meets the constraints for it.
@@ -59,7 +53,7 @@ namespace Trade02.Business.services
         /// <param name="symbol">symbol for the order</param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationTypeEnum type);
+        public Task<Position> ExecuteBuyOrder(string symbol, RecommendationTypeEnum type);
 
         /// <summary>
         /// Executes a single buy order that meets the constraints for it and the minimum price.
@@ -68,7 +62,7 @@ namespace Trade02.Business.services
         /// <param name="type"></param>
         /// <param name="minPrice"></param>
         /// <returns></returns>
-        public Task<Position> ExecuteSimpleOrder(string symbol, RecommendationTypeEnum type, decimal minPrice);
+        public Task<Position> ExecuteBuyOrder(string symbol, RecommendationTypeEnum type, decimal minPrice);
 
         /// <summary>
         /// Get the amount of USDT that can be spent on an order.
