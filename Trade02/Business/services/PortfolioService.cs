@@ -62,6 +62,11 @@ namespace Trade02.Business.services
             // TODO: treatment for an event not sent
         }
 
+        private string StringCurrentStatus()
+        {
+            return $"SELL %: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}";
+        }
+
         /// <summary>
         /// Engine for the managing of open positions and recommended ones. Based on certain conditions, it makes the decision for a sell or hold call, also, initiates the process 
         /// for a buy call on another engine.
@@ -111,7 +116,7 @@ namespace Trade02.Business.services
                 AppSettings.TradeConfiguration.SellPercentage = originalSellPercentage;
 
             //TransmitTradeEvent(TradeEventType.INFO, $"SELL: {AppSettings.TradeConfiguration.SellPercentage}%, PROFIT: {AppSettings.TradeConfiguration.CurrentProfit}%, USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-            Console.WriteLine($"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
+            Console.WriteLine(StringCurrentStatus());
 
             try
             {
@@ -283,7 +288,7 @@ namespace Trade02.Business.services
                     var res = await ExecuteBuyOrder(symbols[i].Symbol, recommendationType);
                     if (res != null)
                     {
-                        TransmitTradeEvent(TradeEventType.INFO, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
+                        TransmitTradeEvent(TradeEventType.INFO, StringCurrentStatus());
 
                         alreadyUsed.Add(symbols[i].Symbol);
                         openPositions++;
@@ -366,7 +371,7 @@ namespace Trade02.Business.services
             position.LastPrice = order.Price;
             position.LastValue = position.Quantity * order.Price;
             position.Valorization = ValorizationCalc(position.InitialPrice, order.Price);
-            TransmitTradeEvent(TradeEventType.SELL, $"SELL: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}", position);
+            TransmitTradeEvent(TradeEventType.SELL, StringCurrentStatus(), position);
 
             ReportLog.WriteReport(logType.SELL, position);
 
@@ -470,11 +475,11 @@ namespace Trade02.Business.services
                     }
                     else
                     {
-                        _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {symbol}, current percentage: {Utils.FormatDecimal(market.PriceChangePercent)}, price: {Utils.FormatDecimal(order.Price)}, type: {type}");
+                        _logger.LogInformation($"BUY: {DateTime.Now}, ASSET: {symbol}, CURRENT %: {Utils.FormatDecimal(market.PriceChangePercent)}, PRICE: {Utils.FormatDecimal(order.Price)}, TYPE: {type}");
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
-                        TransmitTradeEvent(TradeEventType.BUY, "", position);
+                        TransmitTradeEvent(TradeEventType.BUY, StringCurrentStatus(), position);
                         ReportLog.WriteReport(logType.BUY, position);
                         j = 10;
                     }
@@ -526,7 +531,7 @@ namespace Trade02.Business.services
                         position = new Position(market, order.Price, order.Quantity);
                         position.Type = type;
 
-                        TransmitTradeEvent(TradeEventType.BUY, "", position);
+                        TransmitTradeEvent(TradeEventType.BUY, StringCurrentStatus(), position);
                         ReportLog.WriteReport(logType.BUY, position);
                         j = 10;
                     }
@@ -576,10 +581,10 @@ namespace Trade02.Business.services
 
             decimal totalUsdt = balance.Total;
 
-            // teto de gastos
+            // max amout to be used
             totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
 
-            // formula para se fazer compras de no minimo 15 usdt
+            // formula to make orders with 15 usdt minimum
             decimal quantity = totalUsdt / maxOpenPositions;
             decimal support = totalUsdt / minUSDT;
             decimal supportQuantity = totalUsdt / support;
@@ -654,76 +659,5 @@ namespace Trade02.Business.services
                 return null;
             }
         }
-
-        /// <summary>
-        /// Executa as ordens de compras que cumpram as condições necessárias para tal.
-        /// </summary>
-        /// <param name="openPositions">posições em aberto pelo robô</param>
-        /// <param name="symbolsOwned"></param>
-        /// <param name="opportunities">dados previous de moedas que valorizaram positivamente</param>
-        /// <param name="currentMarket">dados atuais das moedas em monitoramento</param>
-        /// <param name="minute"></param>
-        /// <returns></returns>
-        /*
-        public async Task<OrderResponse> ExecuteOrder(List<Position> openPositions, List<string> symbolsOwned, List<IBinanceTick> opportunities, List<IBinanceTick> currentMarket, List<IBinanceTick> previousData, int minute)
-        {
-            // não comprar de primeira, registrar o preço quando estrar e fazer mais duas rodadas pra ver se ele baixa
-            var balance = await GetBalance("USDT");
-            decimal totalUsdt = balance.Total;
-
-            // teto de gastos
-            totalUsdt = Math.Min(totalUsdt, maxBuyAmount);
-
-            // formula para se fazer compras de no minimo 15 usdt
-            decimal quantity = totalUsdt / maxOpenPositions;
-            decimal support = totalUsdt / minUSDT;
-            decimal supportQuantity = totalUsdt / support;
-
-            if (quantity < minUSDT && supportQuantity < minUSDT)
-            {
-                _logger.LogWarning($"#### #### #### #### #### #### ####\n\t#### SALDO USDT INSUFICIENTE PARA COMPRAS ####\n\t#### Posicoes em aberto: {openPositions.Count} ####\n\t#### #### #### #### #### #### ####");
-
-                return null;
-            }
-
-            quantity = Math.Max(quantity, supportQuantity);
-
-            for (int i = 0; i < opportunities.Count; i++)
-            {
-                if (openPositions.Count < maxOpenPositions)
-                {
-                    var current = currentMarket.Find(x => x.Symbol == opportunities[i].Symbol);
-
-                    var percentageChange = current.PriceChangePercent - opportunities[i].PriceChangePercent;
-                    _logger.LogInformation($"COMPRA: {DateTime.Now}, moeda: {opportunities[i].Symbol}, current percentage: {current.PriceChangePercent}, percentage change in {minute}: {percentageChange}, price: {opportunities[i].AskPrice}");
-
-                    // executa a compra
-                    var order = await _marketSvc.PlaceBuyOrder(current.Symbol, quantity);
-                    if (order == null)
-                    {
-                        // não executou, eu faço log do problema na tela mas ainda tenho que ver os possíveis erros pra saber como tratar
-                        _logger.LogWarning($"#### #### #### #### #### #### ####\n\t### Compra de {current.Symbol} NAO EXECUTADA ###\n\t#### #### #### #### #### #### ####");
-                    }
-                    else
-                    {
-                        // adicionar mais validações pois o quantity pode não ter sido 100% filled
-
-                        symbolsOwned.Add(current.Symbol);
-                        Position position = new Position(current, order.Price, order.Quantity);
-                        openPositions.Add(position);
-                        previousData.RemoveAll(x => x.Symbol == opportunities[i].Symbol);
-
-                        ReportLog.WriteReport(logType.COMPRA, position);
-                    }
-                }
-                else
-                {
-                    return new OrderResponse(openPositions, symbolsOwned, previousData);
-                }
-
-            }
-
-            return new OrderResponse(openPositions, symbolsOwned, previousData);
-        } */
     }
 }

@@ -118,7 +118,7 @@ namespace Trade02.Business.services
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceBuyOrder(), message: {ex.Message}, \n stack: {ex.StackTrace}");
-                TransmitTradeEvent(TradeEventType.ERROR, $"ERROR: {DateTime.Now}, message: {ex.Message}");
+                TransmitTradeEvent(TradeEventType.ERROR, $"Date: {DateTime.Now}, message: {ex.Message}");
                 return null;
             }
         }
@@ -147,7 +147,7 @@ namespace Trade02.Business.services
             catch (Exception ex)
             {
                 _logger.LogError($"ERROR: {DateTime.Now}, metodo: MarketService.PlaceSellOrder(), message: {ex.Message}, \n stack: {ex.StackTrace}");
-                TransmitTradeEvent(TradeEventType.ERROR, $"ERROR: {DateTime.Now}, message: {ex.Message}");
+                TransmitTradeEvent(TradeEventType.ERROR, $"Date: {DateTime.Now}, message: {ex.Message}");
                 return null;
             }
         }
