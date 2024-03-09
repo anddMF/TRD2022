@@ -103,12 +103,12 @@ namespace Trade02.Infra.Cross
         public static List<string> GetSellPositionFromFile()
         {
             if (!Directory.Exists(folderPath))
-                return new List<string>();
+                return null;
 
             if (!File.Exists(sellFilePath))
             {
                 CreateSellFile();
-                return new List<string>();
+                return null;
             }
 
             const int maxTries = 3;

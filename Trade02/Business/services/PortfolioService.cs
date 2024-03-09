@@ -80,7 +80,7 @@ namespace Trade02.Business.services
 
             // File where the user can write which symbol to sell or to shut down the program
             List<string> toSellList = WalletManagement.GetSellPositionFromFile();
-            if (toSellList.Count > 0)
+            if (toSellList != null && toSellList.Count > 0)
             {
                 if (toSellList[0].ToLower() == "shut")
                 {
@@ -183,7 +183,7 @@ namespace Trade02.Business.services
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
                     positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.2, RecommendationTypeEnum.Minute);
-                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, -2, RecommendationTypeEnum.Hour);
+                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, (decimal)-0.2, RecommendationTypeEnum.Hour);
                     positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day);
                 }
 

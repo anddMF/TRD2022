@@ -27,6 +27,7 @@ namespace Trade02.Business.services
         private readonly bool hourConfig = AppSettings.EngineConfiguration.Hour;
         private readonly bool minuteConfig = AppSettings.EngineConfiguration.Minute;
         private readonly bool maConfig = AppSettings.EngineConfiguration.MovingAverage;
+        private readonly bool rsiConfig = AppSettings.EngineConfiguration.RSI;
 
         public RecommendationService(ILogger<RecommendationService> logger, IAPICommunication clientSvc)
         {
@@ -186,7 +187,7 @@ namespace Trade02.Business.services
                 else
                 {
                     // verifica se já não tinha renovado antes
-                    if (flags >= 1)
+                    if (flags >= 3)
                     {
                         // already has enough flags to discard this opportunity
                         return false;
@@ -211,10 +212,14 @@ namespace Trade02.Business.services
                 return avg;
             }
 
-            var rsi = CalculateRSI(ogKlines);
-            Console.WriteLine($"RSI: {symbol}; {rsi}");
+            if(rsiConfig)
+            {
+                var rsi = CalculateRSI(ogKlines);
+                Console.WriteLine($"RSI: {symbol}; {rsi}");
+                return rsi;
+            }
 
-            return rsi;
+            return true;
         }
 
         /// <summary>
