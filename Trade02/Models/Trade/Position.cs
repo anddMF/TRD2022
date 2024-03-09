@@ -68,22 +68,22 @@ namespace Trade02.Models.Trade
             LastPrice = orderPrice;
             LastValue = InitialValue;
             Minutes = 1;
-            Risk = ValidateRisk(type);
+            Risk = RiskPerType(type);
             Type = type;
         }
 
-        private decimal ValidateRisk(RecommendationTypeEnum type)
+        public static decimal RiskPerType(RecommendationTypeEnum type)
         {
             switch (type)
             {
                 case RecommendationTypeEnum.Day:
-                    return -3;
-                case RecommendationTypeEnum.Hour:
-                    return -2;
-                case RecommendationTypeEnum.Minute:
                     return -1;
+                case RecommendationTypeEnum.Hour:
+                    return (decimal)-0.2;
+                case RecommendationTypeEnum.Minute:
+                    return (decimal)-0.2;
                 default:
-                    return -2;
+                    return (decimal)-0.3;
             }
         }
     }

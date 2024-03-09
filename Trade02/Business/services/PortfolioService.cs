@@ -51,23 +51,6 @@ namespace Trade02.Business.services
         }
 
         /// <summary>
-        /// Responsible for the transmission of the trade event for the EventsOutput
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="message"></param>
-        /// <param name="position"></param>
-        private async void TransmitTradeEvent(TradeEventType type, string message, Position position = null)
-        {
-            bool sent = await _eventsOutput.SendEvent(new TradeEvent(type, DateTime.Now, message, position));
-            // TODO: treatment for an event not sent
-        }
-
-        private string StringCurrentStatus()
-        {
-            return $"SELL %: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}";
-        }
-
-        /// <summary>
         /// Engine for the managing of open positions and recommended ones. Based on certain conditions, it makes the decision for a sell or hold call, also, initiates the process 
         /// for a buy call on another engine.
         /// </summary>
@@ -76,7 +59,7 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            Console.WriteLine($"Allocation per type: M={opp.Minutes.Count}; H={opp.Hours.Count}; D={opp.Days.Count}");
+            Console.WriteLine($"Recommendations per type: M={opp.Minutes.Count}; H={opp.Hours.Count}; D={opp.Days.Count}");
 
             // File where the user can write which symbol to sell or to shut down the program
             List<string> toSellList = WalletManagement.GetSellPositionFromFile();
@@ -84,12 +67,7 @@ namespace Trade02.Business.services
             {
                 if (toSellList[0].ToLower() == "shut")
                 {
-                    _logger.LogInformation("###### STARTING FORCED SHUTDOWM #####");
-                    foreach (Position position in positions)
-                        await ExecuteForceSell(position);
-
-                    await Task.Delay(15000);
-                    Environment.Exit(0);
+                    await ShutDownProgram(positions);
                 }
                 else
                 {
@@ -182,9 +160,9 @@ namespace Trade02.Business.services
 
                 if (AppSettings.TradeConfiguration.CurrentProfit < AppSettings.TradeConfiguration.MaxProfit && positions.Count < maxOpenPositions)
                 {
-                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, (decimal)-0.2, RecommendationTypeEnum.Minute);
-                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, (decimal)-0.2, RecommendationTypeEnum.Hour);
-                    positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, -3, RecommendationTypeEnum.Day);
+                    positions = await ExecuteOrder(positions, opp.Minutes, AppSettings.EngineConfiguration.MaxMinutePositions, maxOpenPositions, openMinutePositions, Position.RiskPerType(RecommendationTypeEnum.Minute), RecommendationTypeEnum.Minute);
+                    positions = await ExecuteOrder(positions, opp.Hours, AppSettings.EngineConfiguration.MaxHourPositions, maxOpenPositions, openHourPositions, Position.RiskPerType(RecommendationTypeEnum.Hour), RecommendationTypeEnum.Hour);
+                    positions = await ExecuteOrder(positions, opp.Days, AppSettings.EngineConfiguration.MaxDayPositions, maxOpenPositions, openDayPositions, Position.RiskPerType(RecommendationTypeEnum.Day), RecommendationTypeEnum.Day);
                 }
 
                 #endregion
@@ -639,9 +617,36 @@ namespace Trade02.Business.services
 
         }
 
+        /// <summary>
+        /// Responsible for the transmission of the trade event for the EventsOutput
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <param name="position"></param>
+        private async void TransmitTradeEvent(TradeEventType type, string message, Position position = null)
+        {
+            bool sent = await _eventsOutput.SendEvent(new TradeEvent(type, DateTime.Now, message, position));
+            // TODO: treatment for an event not sent
+        }
+
+        private async Task ShutDownProgram(List<Position> positions)
+        {
+            _logger.LogInformation("###### STARTING FORCED SHUTDOWM #####");
+            foreach (Position position in positions)
+                await ExecuteForceSell(position);
+
+            await Task.Delay(15000);
+            Environment.Exit(0);
+        }
+
         private decimal ValorizationCalc(decimal basePrice, decimal currentPrice)
         {
             return ((currentPrice - basePrice) / basePrice) * 100;
+        }
+
+        private string StringCurrentStatus()
+        {
+            return $"SELL %: {Utils.FormatDecimal(AppSettings.TradeConfiguration.SellPercentage)}%, PROFIT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}%, USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}";
         }
 
         public async Task<BinanceOrderBook> GetOrderBook(string symbol, int limit)
