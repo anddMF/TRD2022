@@ -13,6 +13,7 @@ namespace Trade02.Infra.Cross
         private static readonly string folderPath = string.Format("{0}{1}", Directory.GetCurrentDirectory(), "\\WALLET");
         private static readonly string positionsFilePath = $"{folderPath}\\positions.csv";
         private static readonly string sellFilePath = $"{folderPath}\\positionsToSell.csv";
+
         public static bool AddPositionToFile(Position position, decimal currentProfit, decimal currentUSDTProfit)
         {
             try
@@ -22,7 +23,7 @@ namespace Trade02.Infra.Cross
 
                 if (!File.Exists(positionsFilePath))
                 {
-                    CreateFile(position, currentProfit, currentUSDTProfit, positionsFilePath);
+                    CreatePositionsFile(position, currentProfit, currentUSDTProfit, positionsFilePath);
                 }
                 else
                 {
@@ -59,12 +60,20 @@ namespace Trade02.Infra.Cross
             return false;
         }
 
-        private static void CreateFile(Position position, decimal currentProfit, decimal currentUSDTProfit, string filepath)
+        private static void CreatePositionsFile(Position position, decimal currentProfit, decimal currentUSDTProfit, string filepath)
         {
             using (StreamWriter sw = File.CreateText(filepath))
             {
                 sw.WriteLine($"DATE;ASSET;INITIAL PRICE;FINAL PRICE;INITIAL TOTAL; FINAL TOTAL;VALORIZATION;QUANTITY;REC TYPE;CURRENT VAL; CURRENT USDT VAL");
                 sw.WriteLine($"{DateTime.Now}; {position.Symbol}; {Utils.FormatDecimal(position.InitialPrice)}; {Utils.FormatDecimal(position.LastPrice)}; {Utils.FormatDecimal(position.InitialValue)}; {Utils.FormatDecimal(position.LastValue)}; {Utils.FormatDecimal(position.Valorization)}; {Utils.FormatDecimal(position.Quantity)}; {position.Type}; {Utils.FormatDecimal(currentProfit)}; {Utils.FormatDecimal(currentUSDTProfit)}");
+            }
+        }
+
+        private static void CreateSellFile()
+        {
+            using (StreamWriter sw = File.CreateText(sellFilePath))
+            {
+                sw.WriteLine();
             }
         }
 
@@ -94,10 +103,13 @@ namespace Trade02.Infra.Cross
         public static List<string> GetSellPositionFromFile()
         {
             if (!Directory.Exists(folderPath))
-                return null;
+                return new List<string>();
 
             if (!File.Exists(sellFilePath))
-                return null;
+            {
+                CreateSellFile();
+                return new List<string>();
+            }
 
             const int maxTries = 3;
             const int delay = 1000;

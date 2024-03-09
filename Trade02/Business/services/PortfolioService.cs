@@ -76,7 +76,7 @@ namespace Trade02.Business.services
         /// <returns></returns>
         public async Task<ManagerResponse> ManagePosition(OpportunitiesResponse opp, List<Position> positions, List<Position> toMonitor)
         {
-            Console.WriteLine($"Recommendation count: M={opp.Minutes.Count}; H={opp.Hours.Count}; D={opp.Days.Count}");
+            Console.WriteLine($"Allocation per type: M={opp.Minutes.Count}; H={opp.Hours.Count}; D={opp.Days.Count}");
 
             // File where the user can write which symbol to sell or to shut down the program
             List<string> toSellList = WalletManagement.GetSellPositionFromFile();
@@ -150,7 +150,7 @@ namespace Trade02.Business.services
 
                             currentValorization = ValorizationCalc(position.LastPrice, currentPrice);
                             position.Valorization = ValorizationCalc(position.InitialPrice, currentPrice);
-                            Console.WriteLine("valorizacao somada: " + Utils.FormatDecimal(position.Valorization));
+                            Console.WriteLine("current valorization: " + Utils.FormatDecimal(position.Valorization));
 
                             if (position.Valorization >= AppSettings.TradeConfiguration.SellPercentage)
                             {
