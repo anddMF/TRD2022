@@ -430,7 +430,10 @@ namespace Trade02.Business.services
         {
             decimal quantity = await GetUSDTAmount();
             if (quantity == 0)
+            {
+                TransmitTradeEvent(TradeEventType.ERROR, "INSUFFICIENT USDT BALANCE FOR PURCHASES");
                 return null;
+            }
 
             Position position = new Position();
 
@@ -568,10 +571,7 @@ namespace Trade02.Business.services
             decimal supportQuantity = totalUsdt / support;
 
             if (quantity < minUSDT && supportQuantity < minUSDT)
-            {
-                TransmitTradeEvent(TradeEventType.ERROR, "INSUFFICIENT USDT BALANCE FOR PURCHASES");
                 return 0;
-            }
 
             return Math.Max(quantity, supportQuantity);
         }
