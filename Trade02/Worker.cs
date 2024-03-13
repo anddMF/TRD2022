@@ -87,8 +87,8 @@ namespace Trade02
                                 opp = _recSvc.RepurchaseValidation(opp, toMonitor);
                         }
                     } else if (openPositions.Count == 0){
-                        _logger.LogInformation($"\n\t ----###### Reached the maximum profit ######---- \n % {AppSettings.TradeConfiguration.CurrentProfit} \n USDT: {AppSettings.TradeConfiguration.CurrentUSDTProfit}");
-                        TransmitEvent(TradeEventType.FINISH, $"Reached the maximum profit: {AppSettings.TradeConfiguration.CurrentProfit}:{AppSettings.TradeConfiguration.CurrentUSDTProfit}");
+                        _logger.LogInformation($"\n\t ----###### Reached the maximum profit ######---- \n % {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)} \n USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
+                        TransmitEvent(TradeEventType.FINISH, $"Reached the maximum profit: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)}:{Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
                         runner = false;
                     }
                 }

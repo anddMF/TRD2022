@@ -293,28 +293,28 @@ namespace Trade02.Business.services
             decimal prevPrice = 0;
             int j = 0;
 
-            while (j < 4)
-            {
-                await Task.Delay(2000);
-                var market = await _clientSvc.GetTicker(symbol);
-                decimal price = market.AskPrice;
-                Console.WriteLine($"Price {symbol}: {Utils.FormatDecimal(price)}");
+            //while (j < 2)
+            //{
+            //    await Task.Delay(2000);
+            //    var market = await _clientSvc.GetTicker(symbol);
+            //    decimal price = market.AskPrice;
+            //    Console.WriteLine($"Price {symbol}: {Utils.FormatDecimal(price)}");
 
-                if (j > 0 && price > prevPrice)
-                {
-                    Console.WriteLine("\n entered sell but going up\n");
+            //    if (j > 0 && price > prevPrice)
+            //    {
+            //        Console.WriteLine("\n entered sell but going up\n");
 
-                    var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
+            //        var order = await _marketSvc.PlaceSellOrder(symbol, quantity);
 
-                    if (order == null)
-                        TransmitTradeEvent(TradeEventType.ERROR, $"SELL OF {symbol} NOT EXECUTED");
-                    else
-                        return order;
-                }
+            //        if (order == null)
+            //            TransmitTradeEvent(TradeEventType.ERROR, $"SELL OF {symbol} NOT EXECUTED");
+            //        else
+            //            return order;
+            //    }
 
-                prevPrice = price;
-                j++;
-            }
+            //    prevPrice = price;
+            //    j++;
+            //}
 
             Console.WriteLine("\n entered last chance of sell\n");
 

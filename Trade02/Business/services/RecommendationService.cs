@@ -209,14 +209,16 @@ namespace Trade02.Business.services
             {
                 avg = SuperiorMovingAverage(ogKlines);
                 Console.WriteLine($"\tMA: {symbol}; {avg}");
-                return avg;
+                if(!avg)
+                    return avg;
             }
 
             if(rsiConfig)
             {
-                var rsi = CalculateRSI(ogKlines);
+                bool rsi = CalculateRSI(ogKlines);
                 Console.WriteLine($"RSI: {symbol}; {rsi}");
-                return rsi;
+                if(!rsi)
+                    return rsi;
             }
 
             return true;
