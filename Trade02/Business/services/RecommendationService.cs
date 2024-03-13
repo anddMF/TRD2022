@@ -141,7 +141,7 @@ namespace Trade02.Business.services
                 for (int i = 0; i < currentMarket.Count; i++)
                 {
                     var current = currentMarket[i];
-                    bool opportunity = await IsAKlineOpportunity(current.Symbol, KlineInterval.OneMinute, 3);
+                    bool opportunity = await IsAKlineOpportunity(current.Symbol, KlineInterval.OneMinute, 5);
 
                     if (opportunity && !alreadyUsed.Contains(current.Symbol))
                     {
