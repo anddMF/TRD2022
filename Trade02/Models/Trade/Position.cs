@@ -81,7 +81,7 @@ namespace Trade02.Models.Trade
                 case RecommendationTypeEnum.Hour:
                     return (decimal)-0.2;
                 case RecommendationTypeEnum.Minute:
-                    return (decimal)-0.2;
+                    return (decimal)-0.1;
                 default:
                     return (decimal)-0.3;
             }
