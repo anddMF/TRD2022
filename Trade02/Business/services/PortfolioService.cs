@@ -30,7 +30,7 @@ namespace Trade02.Business.services
         private readonly decimal maxBuyAmount = AppSettings.TradeConfiguration.MaxBuyAmount;
         private readonly bool freeMode = AppSettings.TradeConfiguration.FreeMode;
         private readonly decimal originalSellPercentage = AppSettings.TradeConfiguration.SellPercentage;
-        private readonly int minUSDT = 15;
+        private readonly int minUSDT = 10;
 
         private int openDayPositions = 0;
         private int openHourPositions = 0;

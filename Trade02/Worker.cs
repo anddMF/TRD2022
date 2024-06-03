@@ -49,6 +49,7 @@ namespace Trade02
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Console.WriteLine("---------------#------ TRD2022 ------#----------------");
+            Console.WriteLine($"Free mode: {AppSettings.TradeConfiguration.FreeMode}");
             try
             {
                 bool runner = true;
@@ -83,8 +84,8 @@ namespace Trade02
                         else
                         {
                             opp = await _recSvc.CheckOpportunitiesByKlines(currentMarket);
-                            if (toMonitor.Count > 0)
-                                opp = _recSvc.RepurchaseValidation(opp, toMonitor);
+                            //if (toMonitor.Count > 0)
+                            //    opp = _recSvc.RepurchaseValidation(opp, toMonitor);
                         }
                     } else if (openPositions.Count == 0){
                         _logger.LogInformation($"\n\t ----###### Reached the maximum profit at {DateTime.Now.ToString("H:mm:ss")} ######---- \n % {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentProfit)} \n USDT: {Utils.FormatDecimal(AppSettings.TradeConfiguration.CurrentUSDTProfit)}");
